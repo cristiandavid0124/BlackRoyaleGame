@@ -1,8 +1,6 @@
 package com.escuelgaing.edu.co.model;
-import com.escuelgaing.edu.co.model.*;
 
-import scala.collection.immutable.List;
-import 
+import java.util.List;
 
 public class Player {
     private String name;
@@ -46,5 +44,26 @@ public class Player {
 
     public void setBet(double bet) {
         this.bet = bet;
+    }
+
+
+    public int calculateScore() {
+        int score = 0;
+        int acesCount = 0; 
+
+        for (Card card : hand) {
+            score += card.getValue();
+            if (card.getRank().equals("Ace")) {
+                acesCount++; 
+            }
+        }
+
+     
+        while (score > 21 && acesCount > 0) {
+            score -= 10; 
+            acesCount--;
+        }
+
+        return score;
     }
 }
