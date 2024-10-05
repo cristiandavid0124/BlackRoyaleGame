@@ -4,37 +4,59 @@ import com.escuelgaing.edu.co.model.Game;
 import com.escuelgaing.edu.co.model.Player;
 import com.escuelgaing.edu.co.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/games")
+@RequestMapping("/api/game")
 public class GameController {
 
     @Autowired
     private GameService gameService;
 
     @PostMapping("/start")
-    public ResponseEntity<Game> startGame() {
-        Game newGame = gameService.startGame();
-        return ResponseEntity.ok(newGame);
+    public Game startGame() {
+        return gameService.startGame();
     }
 
     @PostMapping("/{gameId}/addPlayer")
-    public ResponseEntity<Game> addPlayerToGame(@PathVariable Long gameId, @RequestBody Player player) {
-        Game updatedGame = gameService.addPlayerToGame(gameId, player);
-        return updatedGame != null ? ResponseEntity.ok(updatedGame) : ResponseEntity.notFound().build();
+    public Game addPlayerToGame(@PathVariable Long gameId, @RequestBody Player player) {
+        return gameService.addPlayerToGame(gameId, player);
     }
 
-    @PostMapping("/{gameId}/dealCard")
-    public ResponseEntity<Void> dealCardToPlayer(@PathVariable Long gameId, @RequestParam String playerName) {
-        gameService.dealCardToPlayer(gameId, playerName);
-        return ResponseEntity.ok().build();
+    @PostMapping("/{gameId}/deal")
+    public void dealCardToPlayer(@PathVariable Long gameId) {
+        gameService.dealCardToPlayer(gameId);
+    }
+
+    @PostMapping("/{gameId}/bet")
+    public boolean placeBet(@PathVariable Long gameId, @RequestParam double amount) {
+        return gameService.placeBet(gameId, amount);
+    }
+
+    @PostMapping("/{gameId}/changeTurn")
+    public void changeTurn(@PathVariable Long gameId) {
+        gameService.changeTurn(gameId);
+    }
+
+    @GetMapping("/{gameId}/winners")
+    public List<Player> determineWinner(@PathVariable Long gameId) {
+        return gameService.determineWinner(gameId);
+    }
+
+    @GetMapping("/{gameId}/round")
+    public int getCurrentRound(@PathVariable Long gameId) {
+        return gameService.getCurrentRound(gameId);
+    }
+
+    @GetMapping("/{gameId}/currentPlayer")
+    public Player getCurrentPlayer(@PathVariable Long gameId) {
+        return gameService.getCurrentPlayer(gameId);
     }
 
     @PostMapping("/{gameId}/end")
-    public ResponseEntity<Game> endGame(@PathVariable Long gameId) {
-        Game endedGame = gameService.endGame(gameId);
-        return ResponseEntity.ok(endedGame);
+    public Game endGame(@PathVariable Long gameId) {
+        return gameService.endGame(gameId);
     }
 }

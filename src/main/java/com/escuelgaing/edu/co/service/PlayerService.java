@@ -28,9 +28,14 @@ public class PlayerService {
     public Player updateBalance(String name, double amount) {
         Player player = playerRepository.findByName(name);
         if (player != null) {
-            player.increaseBalance(amount); // O decreaseBalance(amount) según sea necesario
-            return playerRepository.save(player);
+            if (amount > 0) {
+                player.increaseBalance(amount);  
+            } else {
+                player.decreaseBalance(-amount); 
+            }
+            return playerRepository.save(player); 
         }
-        return null;
+        return null; 
     }
+    
 }

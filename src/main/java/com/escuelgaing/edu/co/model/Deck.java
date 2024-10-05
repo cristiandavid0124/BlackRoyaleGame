@@ -29,8 +29,8 @@ public class Deck {
 
     public Card drawCard() {
         if (cards.isEmpty()) {
-            return null; // Maneja el caso si no hay más cartas en el mazo
+            return null; 
         }
-        return cards.remove(cards.size() - 1); // Devuelve la última carta del mazo
+        return cards.remove(cards.size() - 1); 
     }
 }

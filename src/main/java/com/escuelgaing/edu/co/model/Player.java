@@ -1,18 +1,23 @@
 package com.escuelgaing.edu.co.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Player {
     private String name;
     private List<Card> hand;
-    private double balance;
+    private double amount;
     private double bet;
+    private boolean finishTurn;
+    private double balance;
 
-    public Player(String name, double balance) {
+    public Player(String name, double balance,boolean finishTurn) {
         this.name = name;
-        this.balance = balance;
+        this.amount = balance;
         this.hand = new ArrayList<>();
+        this.finishTurn = false;
     }
+
 
     public String getName() {
         return name;
@@ -26,16 +31,16 @@ public class Player {
         hand.add(card);
     }
 
-    public double getBalance() {
-        return balance;
+    public double getAmount() {
+        return amount;
     }
 
     public void decreaseBalance(double amount) {
-        this.balance -= amount;
+        this.amount -= amount;
     }
 
     public void increaseBalance(double amount) {
-        this.balance += amount;
+        this.amount += amount;
     }
 
     public double getBet() {
@@ -45,7 +50,28 @@ public class Player {
     public void setBet(double bet) {
         this.bet = bet;
     }
+    public void setfinishTurn(boolean estado){
+         finishTurn = estado;
+    }
 
+
+    public boolean placeBet(double bet) {
+        if (bet <= this.amount) {  
+            setBet(bet);
+            decreaseBalance(bet);
+            return true; 
+        }
+        return false;
+    }
+
+
+
+    public void  revenue() {
+       
+           amount += bet*2;
+           
+    }
+       
 
     public int calculateScore() {
         int score = 0;
@@ -66,4 +92,11 @@ public class Player {
 
         return score;
     }
+
+
+
+     public boolean isFinishTurn() {
+        return finishTurn;
+    }
+
 }
