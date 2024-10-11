@@ -2,20 +2,22 @@ package com.escuelgaing.edu.co.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Game {
-    private List<Player> players;  
+    private List<Player> players;
     private Dealer dealer;
     private boolean isActive;
     private int currentRound;
-    private List<Player> winners;  
+    private List<Player> winners;
     private Deck deck;
     private int currentPlayerIndex;
     private final int MAX_BET_TIME = 60;  // 60 segundos para apostar
     private final int MAX_DECISION_TIME = 40;  // 40 segundos por decisión
+    private final Lock playerLock = new ReentrantLock();  // Lock para evitar condiciones de carrera en jugadores
+    private CyclicBarrier barrier;
 
     // Constructor: recibe la lista de jugadores al inicio del juego
     public Game(List<Player> players) {
@@ -25,77 +27,91 @@ public class Game {
         this.isActive = true;
         this.currentRound = 1;
         this.currentPlayerIndex = 0;
+        this.barrier = new CyclicBarrier(players.size() + 1);  // +1 para incluir al coordinador
     }
-
-
-
 
     public void startBetting() {
         ExecutorService executor = Executors.newFixedThreadPool(players.size());
         for (Player player : players) {
             executor.submit(() -> {
-                ArrayList<Chip> chipsToBet = player.getChips();
-                playerBet(player,chipsToBet);
+                try {
+                    ArrayList<Chip> chipsToBet = player.getChips();
+                    playerBet(player, chipsToBet);
+                } catch (Exception e) {
+                    System.out.println("Error al realizar la apuesta para el jugador: " + player.getName());
+                }
             });
         }
         executor.shutdown();
         try {
-            // Esperar a que todos los jugadores terminen de apostar o se agote el tiempo de 60 segundos
             if (!executor.awaitTermination(MAX_BET_TIME, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
+                System.out.println("Se terminó el tiempo para apostar.");
             }
         } catch (InterruptedException e) {
             executor.shutdownNow();
+            System.out.println("La espera fue interrumpida.");
         }
         startGame();
     }
-
 
     public Dealer getDealer() {
         return dealer;
     }
 
-
-
-    
-    private void playerBet(Player player, ArrayList<Chip> chips) {
-       player.setChips(chips);
+    private synchronized void playerBet(Player player, ArrayList<Chip> chips) {
+        player.setChips(chips);
     }
 
-    // Inicia el juego
     public void startGame() {
         this.isActive = true;
         this.deck = new Deck(); // Crear un nuevo mazo
         this.deck.shuffle(); // Barajar el mazo
         resetHands();
-        dealInitialCards();  // Repartir cartas iniciales
+        dealInitialCards();
     }
 
-    // Repartir cartas a todos los jugadores y al dealer
     public void dealInitialCards() {
         System.out.println("Repartiendo cartas iniciales...");
         for (Player player : players) {
-            player.addCard(deck.drawCard()); // 1ra carta
-            player.addCard(deck.drawCard()); // 2da carta
+            player.addCard(deck.drawCard());
+            player.addCard(deck.drawCard());
             System.out.println("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + " - Puntuación: " + player.calculateScore());
         }
-        dealer.addCard(deck.drawCard()); // 1ra carta del dealer
-        dealer.addCard(deck.drawCard()); // 2da carta del dealer
+        dealer.addCard(deck.drawCard());
+        dealer.addCard(deck.drawCard());
         System.out.println("Dealer - Cartas: " + dealer.getHand() + " - Puntuación: " + dealer.calculateScore());
         startPlayerTurns();
     }
 
     public void startPlayerTurns() {
+        ExecutorService executor = Executors.newFixedThreadPool(players.size());
         for (Player player : players) {
-            if (!player.isFinishTurn()) {
-                System.out.println("Iniciando turno de " + player.getName());
-                startPlayerTurn(player);
-            } else {
-                System.out.println("El jugador " + player.getName() + " ya ha terminado su turno.");
-            }
+            executor.submit(() -> startPlayerTurn(player));
         }
-        dealerTurn();
+        executor.shutdown();
+        
+        // El hilo del coordinador espera a que todos los jugadores terminen su turno
+        try {
+            barrier.await(); // Esperar a que todos los jugadores terminen
+        } catch (InterruptedException | BrokenBarrierException e) {
+            e.printStackTrace();
+        }
+        
+        // Esperar a que el executor termine
+        try {
+            if (!executor.awaitTermination(MAX_DECISION_TIME, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+                System.out.println("Tiempo de espera agotado para los turnos de los jugadores.");
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            System.out.println("La espera fue interrumpida.");
+        }
+        
+        dealerTurn(); // Iniciar el turno del dealer
     }
+    
 
     private void dealerTurn() {
         while (dealer.calculateScore() < 17) {
@@ -104,43 +120,42 @@ public class Game {
         endGame();
     }
 
-    private void startPlayerTurn(Player player) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        try {
-            executor.submit(() -> {
-                decideAction(player);
-                player.setfinishTurn(true);
-            });
-            executor.shutdown();
-            if (!executor.awaitTermination(MAX_DECISION_TIME, TimeUnit.SECONDS)) {
-                // Si el tiempo se agota, por defecto el jugador "se queda"
-                player.setfinishTurn(true);
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-        }
+    
 
-      
+
+    private void startPlayerTurn(Player player) {
+        try {
+            decideAction(player);  // Decisión de acción del jugador
+        } catch (Exception e) {
+            System.out.println("Error en el turno del jugador: " + player.getName());
+        } finally {
+            player.setfinishTurn(true);
+            try {
+                barrier.await(); // Esperar en la barrera
+            } catch (InterruptedException | BrokenBarrierException e) {
+                System.out.println("Error al esperar en la barrera para " + player.getName());
+            }
+        }
     }
 
     public void decideAction(Player player) {
         PlayerAction action = player.getEstado();
         switch (action) {
-            case HIT:  // "robar"
+            case HIT:
                 player.addCard(deck.drawCard());
                 break;
-            case STAND:  // "quedarse"
+            case STAND:
                 player.setfinishTurn(true);
                 break;
-            case DOUBLE:  // "doblar"
+            case DOUBLE:
                 double doubleBet = player.getBet() * 2;
                 player.placeBet(doubleBet);
-                player.addCard(deck.drawCard()); // Después de doblar, solo recibe una carta más
+                player.addCard(deck.drawCard());
                 player.setfinishTurn(true);
                 break;
+            default:
+            player.setfinishTurn(true);
         }
-
     }
 
     public void resetGame() {
@@ -156,16 +171,11 @@ public class Game {
         this.isActive = true;
     }
 
-    public boolean isActive() {
-        return isActive;
-    }
-
     public void endGame() {
         this.isActive = false;
-        deliverProfit(); 
+        deliverProfit();
     }
 
-    // Método para calcular y entregar las ganancias a los ganadores
     public void deliverProfit() {
         List<Player> winners = calculateWinners();
         for (Player player : winners) {
@@ -186,10 +196,9 @@ public class Game {
     
             if (playerScore > 21) {
                 System.out.println("Jugador " + player.getName() + " se pasó de 21.");
-                continue; // Si el jugador se pasa de 21, no es considerado
+                continue;
             }
     
-            // Verifica si el dealer se pasó o si el jugador tiene una puntuación más alta
             if (playerScore > dealerScore || dealerScore > 21) {
                 if (playerScore > highestScore) {
                     highestScore = playerScore;
@@ -203,7 +212,6 @@ public class Game {
             }
         }
     
-        // Si no hay ganadores, el dealer puede ser el ganador si tiene puntuación válida
         if (winners.isEmpty() && dealerScore <= 21) {
             winners.add(dealer);
             System.out.println("El dealer gana con: " + dealerScore);
@@ -221,7 +229,6 @@ public class Game {
         return winners;
     }
 
-    // Método para repartir una carta al jugador actual
     public Card dealCard() {
         Player currentPlayer = getCurrentPlayer();
         Card newCard = this.deck.drawCard();
@@ -229,31 +236,30 @@ public class Game {
         return newCard;
     }
 
-    // Obtener el jugador actual
     public Player getCurrentPlayer() {
         return players.get(currentPlayerIndex);
     }
 
-    // Avanzar al siguiente jugador
     public void nextPlayer() {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
     }
 
-    // Reiniciar los turnos de todos los jugadores
     public void resetPlayerTurns() {
         for (Player player : players) {
             player.setfinishTurn(false);
         }
     }
 
+    public boolean isActive() {
+        return isActive;
+    }
 
     public void resetHands() {
         for (Player player : players) {
-            player.resetHand(); // Limpia las cartas de cada jugador
-            player.setBet(0); // Resetea la apuesta
-            player.setfinishTurn(false); // Resetea el estado del turno
+            player.resetHand();
+            player.setBet(0);
+            player.setfinishTurn(false);
         }
-        dealer.resetHand(); // Limpia las cartas del dealer
+        dealer.resetHand();
     }
-
 }

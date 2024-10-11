@@ -68,7 +68,7 @@ public class Room {
     // Método para reiniciar la sala
     public void resetRoom() {
         if (game != null) {
-            game.resetGame();  // Reiniciar el juego
+            game.resetGame();  
         }
         this.status = RoomStatus.EN_ESPERA;  // Cambiar el estado a "EN_ESPERA"
         players.clear();  // Limpiar los jugadores de la sala
