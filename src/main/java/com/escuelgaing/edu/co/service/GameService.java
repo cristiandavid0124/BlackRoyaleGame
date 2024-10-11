@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Service
 public class GameService {
@@ -17,10 +15,8 @@ public class GameService {
     @Autowired
     private GameRepository gameRepository;
 
-    private ExecutorService executorService = Executors.newFixedThreadPool(10);
-
-    public Game startGame() {
-        Game game = new Game();
+    public Game startGame(List<Player> players) {
+        Game game = new Game(players);
         game.startGame();
         return gameRepository.save(game);
     }
@@ -28,22 +24,20 @@ public class GameService {
     public Game addPlayerToGame(Long gameId, Player player) {
         Game game = gameRepository.findById(gameId).orElse(null);
         if (game != null) {
-            game.addPlayer(player);
+            game.getPlayers().add(player);
             return gameRepository.save(game);
         }
         return null;
     }
 
     public void dealCardToPlayer(Long gameId) {
-        executorService.submit(() -> {
-            Game game = gameRepository.findById(gameId).orElse(null);
-            if (game != null && game.isActive()) {
-                Card newCard = game.dealCard();  
-                if (newCard != null) {
-                    gameRepository.save(game);
-                }
+        Game game = gameRepository.findById(gameId).orElse(null);
+        if (game != null && game.isActive()) {
+            Card newCard = game.dealCard();  
+            if (newCard != null) {
+                gameRepository.save(game);
             }
-        });
+        }
     }
 
     public Game endGame(Long gameId) {
@@ -55,30 +49,12 @@ public class GameService {
         return null;
     }
 
-    public boolean placeBet(Long gameId, double amount) {
-        Game game = gameRepository.findById(gameId).orElse(null);
-        if (game != null && game.isActive() && amount > 0) {
-            game.placeBet(amount);
-            gameRepository.save(game);
-            return true;
-        }
-        return false;
-    }
-
     public List<Player> determineWinner(Long gameId) {
         Game game = gameRepository.findById(gameId).orElse(null);
         if (game != null && !game.isActive()) {
             return game.calculateWinners();
         }
         return null;
-    }
-
-    public int getCurrentRound(Long gameId) {
-        Game game = gameRepository.findById(gameId).orElse(null);
-        if (game != null) {
-            return game.getCurrentRound();
-        }
-        return -1;
     }
 
     public Player getCurrentPlayer(Long gameId) {
@@ -92,7 +68,7 @@ public class GameService {
     public void changeTurn(Long gameId) {
         Game game = gameRepository.findById(gameId).orElse(null);
         if (game != null && game.isActive()) {
-            game.changeTurn();
+            game.nextPlayer();
             gameRepository.save(game);
         }
     }
