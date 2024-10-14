@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Player {
-    private String name;
-    private List<Card> hand;
+    private User user; 
+    public String name;
+    private String roomId; // ID de la sala a la que pertenece el jugador
+    public List<Card> hand;
     private double amount;
     private double bet;
     private boolean finishTurn;
@@ -13,8 +15,10 @@ public class Player {
     private ArrayList<Chip> availableChips;
 
 
-    public Player(String name, double amount,boolean finishTurn) {
+    public Player(User user,String roomId, double amount,boolean finishTurn) {
+        this.user = user; 
         this.name = name;
+        this.roomId = roomId; 
         this.amount = amount;
         this.hand = new ArrayList<>();
         this.finishTurn = false;
@@ -22,6 +26,27 @@ public class Player {
         this.availableChips = new ArrayList<>(); // Inicia como una lista vacía
 
     }
+
+    public String getId(){
+        return user.getId();
+    }
+        
+    public String getRoomId() {
+        return roomId; // Getter para el roomId
+    }
+
+    public void setRoomId(String roomId) {
+        this.roomId = roomId; // Setter para el roomId
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
 
     public void setChips(ArrayList<Chip> chips) {
         availableChips.clear(); // Limpia las fichas actuales
@@ -33,11 +58,6 @@ public class Player {
         }
     }
 
-
-  
-
-
-    
     public ArrayList<Chip> getChips() {
         return availableChips; 
     }
@@ -62,9 +82,8 @@ public class Player {
         this.estado = estado;
     }
 
-
     public String getName() {
-        return name;
+        return user.getName(); // Puedes obtener el nombre del usuario a través del objeto User
     }
 
     public List<Card> getHand() {

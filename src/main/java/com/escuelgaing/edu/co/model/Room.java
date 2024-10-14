@@ -1,18 +1,68 @@
 package com.escuelgaing.edu.co.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Document(collection = "Rooms") // Define la colección en MongoDB
 public class Room {
+    @Id // Indica que este campo es el identificador único del documento
+    private String id;
     private List<Player> players;
     private Game game;
     private RoomStatus status;  // Usamos el enum RoomStatus
     private final int maxPlayers = 5;
     private final int minPlayers = 3;
 
+    // Constructor
     public Room() {
         this.players = new ArrayList<>();
         this.status = RoomStatus.EN_ESPERA;  // Estado inicial con enum
+    }
+
+
+     // Método para obtener un jugador por ID
+     public Player getPlayer(String playerId) {
+        for (Player player : players) {
+            if (player.getId().equals(playerId)) {
+                return player;
+            }
+        }
+        return null; 
+    }
+
+    public String getRoomId() {  
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id; 
+    }
+
+    public List<Player> getPlayers() {
+        return players;
+    }
+
+    public void setPlayers(List<Player> players) {
+        this.players = players;
+    }
+
+    public Game getGame() {
+        return game;
+    }
+
+    public void setGame(Game game) {
+        this.game = game;
+    }
+
+    public RoomStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(RoomStatus status) {
+        this.status = status;
     }
 
     // Método para agregar un jugador a la sala
@@ -47,7 +97,7 @@ public class Room {
     // Método para iniciar el juego
     public void startGame() {
         if (players.size() >= minPlayers && players.size() <= maxPlayers) {
-            this.game = new Game(players);  // Crear una nueva instancia de Game con los jugadores de la sala
+            this.game = new Game(players,id);  // Crear una nueva instancia de Game con los jugadores de la sala
             this.status = RoomStatus.EN_JUEGO;  // Cambiar el estado de la sala a "EN_JUEGO"
             game.startGame();  // Iniciar el juego
         } else {
@@ -72,16 +122,6 @@ public class Room {
         }
         this.status = RoomStatus.EN_ESPERA;  // Cambiar el estado a "EN_ESPERA"
         players.clear();  // Limpiar los jugadores de la sala
-    }
-
-    // Obtener el estado de la sala
-    public RoomStatus getStatus() {
-        return status;
-    }
-
-    // Obtener la lista de jugadores de la sala
-    public List<Player> getPlayers() {
-        return players;
     }
 
     // Método para saber si la sala está llena
