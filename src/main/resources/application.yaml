@@ -1,8 +1,22 @@
-# Configuración de la conexión a MongoDB
 spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          azure:
+            issuer-uri: https://login.microsoftonline.com/4d4d334a-9797-4b89-b8e9-28946972b8f3/v2.0
+        registration:
+          azure-dev:
+            provider: azure
+            client-id: a18be00e-d104-4272-b36c-7a05bee4eff4
+            client-secret: RFG8Q~xjFw_1r9lymGZ1xD5-z2VFth4Rg~IMXcK4
+            scope: 
+              - openid
+              - email
+              - profile
+
   data:
     mongodb:
       uri: mongodb+srv://santiagotorresacosta29:rH9ITs8F4cbNdMxf@arep.lcigk.mongodb.net/BlackJack?retryWrites=true&w=majority&appName=AREP
 
-# Habilitar el modo de depuración
-debug=true
+
