@@ -20,10 +20,10 @@ public class Game {
     private CyclicBarrier barrier;
 
     // Constructor: recibe la lista de jugadores al inicio del juego
-    public Game(List<Player> players) {
+    public Game(List<Player> players,String roomId) {
         this.players = players;
         this.winners = new ArrayList<>();
-        this.dealer = new Dealer();
+        this.dealer = new Dealer(roomId);
         this.isActive = true;
         this.currentRound = 1;
         this.currentPlayerIndex = 0;
@@ -69,6 +69,10 @@ public class Game {
         this.deck.shuffle(); // Barajar el mazo
         resetHands();
         dealInitialCards();
+    }
+
+    public List<Player> getPlayers(){
+        return players;
     }
 
     public void dealInitialCards() {
@@ -186,6 +190,7 @@ public class Game {
     public List<Player> calculateWinners() {
         int dealerScore = dealer.calculateScore();
         int highestScore = 0;
+        
         winners.clear();
     
         System.out.println("Puntuación del Dealer: " + dealerScore);
@@ -214,7 +219,7 @@ public class Game {
     
         if (winners.isEmpty() && dealerScore <= 21) {
             winners.add(dealer);
-            System.out.println("El dealer gana con: " + dealerScore);
+           
         }
     
         if (!winners.isEmpty()) {
