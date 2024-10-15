@@ -4,12 +4,12 @@ spring:
       client:
         provider:
           azure:
-            issuer-uri: https://login.microsoftonline.com/4d4d334a-9797-4b89-b8e9-28946972b8f3/v2.0
+            issuer-uri: https://login.microsoftonline.com/c64f33f5-c52f-437e-a331-0fc5f8e5058a/v2.0
         registration:
           azure-dev:
             provider: azure
-            client-id: a18be00e-d104-4272-b36c-7a05bee4eff4
-            client-secret: RFG8Q~xjFw_1r9lymGZ1xD5-z2VFth4Rg~IMXcK4
+            client-id: 066fef70-45bd-422a-a870-149ae2f088f4
+            client-secret: vbd8Q~ky5tbrmYak5vhbjOMQJboHqpXUvhOm4aGp
             scope: 
               - openid
               - email
