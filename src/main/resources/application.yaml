@@ -9,8 +9,7 @@ spring:
           azure-dev:
             provider: azure
             client-id: 066fef70-45bd-422a-a870-149ae2f088f4
-            client-secret: vbd8Q~ky5tbrmYak5vhbjOMQJboHqpXUvhOm4aGp
-            scope: 
+            client-secret: 
               - openid
               - email
               - profile
