@@ -13,7 +13,11 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import java.util.ArrayList;
+
 
 class STOMPMessagesHandlerTest {
 
@@ -42,24 +46,42 @@ class STOMPMessagesHandlerTest {
         player = new Player(user, room.getRoomId(), 1000.0, false); // Inicializa el jugador
     }
 
+
+
+   
     @Test
     void testJoinGame_SuccessfulJoin() {
-        String roomId = "roomId";
-        String playerId = "playerId";
+        // Crear un nuevo ID de sala y un objeto de sala
+        String roomId1 = "roomId1";
+        Room room1 = new Room();
+        room1.setId(roomId1);
+        room1.setPlayers(new ArrayList<>()); // Inicializar la lista de jugadores
+    
+   
+        User user12 = new User();
+        user12.setId("playerId12");
 
-        when(gameService.getPlayerById(playerId)).thenReturn(player);
-        when(gameService.getRoom(roomId)).thenReturn(room);
+        user12.setName("PlayerName1");
+        Player player = new Player(user12, roomId1, 1000.0, false);
+        gameService.setRooms(room1, roomId1);
+    
+        // Llamar al método joinGame
+        Room result = stompMessagesHandler.joinGame(roomId1, "playerId");
+    
+        // Verificar que el jugador se haya añadido a la sala
 
-        Room result = stompMessagesHandler.joinGame(roomId, playerId);
-
-        assertSame(room, result);
-        verify(gameService).addPlayerToRoom(roomId, player);
-        verify(gameService).getRoom(roomId);
+    
+    
+        // Asegurarse de que la sala tiene el jugador correcto
+        assertNotNull(result, "La sala no debería ser nula");
+        assertTrue(result.getPlayers().contains(player), "El jugador debería haber sido añadido a la sala");
+        assertEquals(1, result.getPlayers().size(), "La sala debería tener un jugador");
     }
-
+    
     @Test
     void testStartGame() {
         String roomId = "roomId";
+        String playerId = "playerId";
 
         when(gameService.getRoom(roomId)).thenReturn(room);
 
@@ -98,41 +120,31 @@ class STOMPMessagesHandlerTest {
         verify(gameService).processAction(player, action);
         verify(messagingTemplate).convertAndSend("/topic/game/" + roomId, room);
     }
-
     @Test
     void testJoinGame_MultiplePlayers() {
         String roomId = "roomId";
-        String[] playerIds = {"playerId1", "playerId2", "playerId3", "playerId4", "playerId5"};
-        String[] playerNames = {"PlayerName1", "PlayerName2", "PlayerName3", "PlayerName4", "PlayerName5"};
-        Player[] players = new Player[5];
-    
+        Room room = new Room();
+        room.setId(roomId);
+        // Inicializa la sala en el mock
         when(gameService.getRoom(roomId)).thenReturn(room);
-    
         // Simular la creación de 5 jugadores
-        for (int i = 0; i < playerIds.length; i++) {
-            User user = new User();
-            user.setId(playerIds[i]);
-            user.setName(playerNames[i]);
-            players[i] = new Player(user, room.getRoomId(), 1000.0, false);
-    
-            when(gameService.getPlayerById(playerIds[i])).thenReturn(players[i]);
-        }
-    
-        // Unir a los jugadores al juego
+        String[] playerIds = {"playerId1", "playerId2", "playerId3"};
         for (String playerId : playerIds) {
+            User user = new User();
+            user.setId(playerId);
+            Player player = new Player(user, roomId, 1000.0, false);
+            when(gameService.getPlayerById(playerId)).thenReturn(player);
             stompMessagesHandler.joinGame(roomId, playerId);
         }
     
         // Verificar que cada jugador se haya añadido a la sala
-        for (Player player : players) {
-            verify(gameService).addPlayerToRoom(roomId, player);
+        for (String playerId : playerIds) {
+            verify(gameService).addPlayerToRoom(roomId, gameService.getPlayerById(playerId));
         }
-        
-        // Asegúrate de que hay 5 jugadores en la sala
-        assertEquals(5, room.getPlayers().size()); // Asegúrate de que hay cinco jugadores en la sala
-    }
     
-
+        // Asegúrate de que hay 5 jugadores en la sala
+        assertEquals(5, room.getPlayers().size());
+    }
 
     @Test
     void testEndGame() {

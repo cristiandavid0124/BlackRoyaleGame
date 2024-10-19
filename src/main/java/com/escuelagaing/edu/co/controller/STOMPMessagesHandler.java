@@ -25,8 +25,8 @@ public class STOMPMessagesHandler {
     public Room joinGame(@DestinationVariable String roomId, @DestinationVariable String playerId) {
         Player player = gameService.getPlayerById(playerId);
         gameService.addPlayerToRoom(roomId, player);
-        Room room = gameService.getRoom(roomId);
-        return room; // Envía la sala actualizada a todos los suscriptores
+        
+        return gameService.getRoom(roomId); // Envía la sala actualizada a todos los suscriptores
     }
 
     // Cuando se inicia el juego

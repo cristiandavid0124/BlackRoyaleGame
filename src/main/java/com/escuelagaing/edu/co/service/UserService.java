@@ -15,13 +15,13 @@ public class UserService {
 
     // Crear un nuevo usuario
     public User createUser(User user) {
-        userMap.put(user.getId(), user); // Suponiendo que el usuario tiene un método getId() que devuelve su ID
+        userMap.put(user.getId(), user); 
         return user;
     }
 
     // Obtener un usuario por ID
     public Optional<User> getUserById(String id) {
-        return Optional.ofNullable(userMap.get(id)); // Retorna el usuario si existe, o un Optional vacío
+        return Optional.ofNullable(userMap.get(id)); 
     }
 
     // Actualizar un usuario

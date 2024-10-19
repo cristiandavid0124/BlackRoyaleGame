@@ -15,6 +15,16 @@ public class User {
     public User() {
     }
 
+
+    public User(String id, String email, String name, String displayName, String givenName, String familyName) {
+        this.id = id;
+        this.email = email;
+        this.name = name;
+        this.displayName = displayName;
+        this.givenName = givenName;
+        this.familyName = familyName;
+    }
+
     // Getters y Setters
     public String getId() {
         return id;

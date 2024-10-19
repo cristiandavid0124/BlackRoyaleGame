@@ -13,15 +13,24 @@ public class GameService {
     private final Map<String, Room> rooms = new HashMap<>(); 
 
 
+   
+
+    private String generateUniqueRoomId() {
+        return "room-" + rooms.size() + "-" + System.currentTimeMillis(); // Ejemplo de generación de ID
+    }
     public Room createRoom() {
         Room room = new Room(); 
+        room.setId(generateUniqueRoomId()); // Establece un ID único
         rooms.put(room.getRoomId(), room); 
         return room;
     }
 
-
     public Room getRoom(String roomId) {
         return rooms.get(roomId); 
+    }
+
+    public void setRooms(Room a,String id) {
+        rooms.put(id,a);
     }
 
 
@@ -40,12 +49,14 @@ public class GameService {
         Room room = getRoom(roomId);
         if (room != null) {
             room.addPlayer(player);
-        }else{
+            rooms.put(roomId, room);
+        } else {
             Room newRoom = new Room(); 
+            newRoom.setId(roomId);
             newRoom.addPlayer(player);
+            rooms.put(roomId, newRoom);
         }
-
-
+        System.out.println("Rooms: " + rooms); // Para verificar el estado de rooms
     }
 
     // Iniciar un juego en la sala
@@ -63,6 +74,10 @@ public class GameService {
             // No es necesario guardar, ya que los cambios se reflejan en el mapa
         }
     }
+
+
+
+
 
     // Colocar una apuesta
     public void placeBet(Player player, Double betAmount) {
