@@ -3,10 +3,7 @@ package com.escuelagaing.edu.co.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-import jakarta.persistence.Entity;
 
 public class Game {
     private List<Player> players;
@@ -20,8 +17,7 @@ public class Game {
     private final int MAX_DECISION_TIME = 40;  // 40 segundos por decisión
     private CyclicBarrier barrier;
 
-
-    public Game(List<Player> players,String roomId) {
+    public Game(List<Player> players, String roomId) {
         this.players = players;
         this.winners = new ArrayList<>();
         this.dealer = new Dealer(roomId);
@@ -31,9 +27,7 @@ public class Game {
         this.barrier = new CyclicBarrier(players.size() + 1); 
     }
 
-
-
-      
+    // FASE 2: Fase de Apuestas
     public void startBetting() {
         ExecutorService executor = Executors.newFixedThreadPool(players.size());
         for (Player player : players) {
@@ -56,7 +50,6 @@ public class Game {
             executor.shutdownNow();
             System.out.println("La espera fue interrumpida.");
         }
-        startGame();
     }
 
     public Dealer getDealer() {
@@ -67,6 +60,7 @@ public class Game {
         player.setChips(chips);
     }
 
+    // FASE 3: Fase de Reparto de Cartas Iniciales
     public void startGame() {
         this.isActive = true;
         this.deck = new Deck(); // Crear un nuevo mazo
@@ -75,7 +69,7 @@ public class Game {
         dealInitialCards();
     }
 
-    public List<Player> getPlayers(){
+    public List<Player> getPlayers() {
         return players;
     }
 
@@ -89,24 +83,22 @@ public class Game {
         dealer.addCard(deck.drawCard());
         dealer.addCard(deck.drawCard());
         System.out.println("Dealer - Cartas: " + dealer.getHand() + " - Puntuación: " + dealer.calculateScore());
-        startPlayerTurns();
     }
 
+    // FASE 4: Fase de Decisiones de Jugadores
     public void startPlayerTurns() {
         ExecutorService executor = Executors.newFixedThreadPool(players.size());
         for (Player player : players) {
             executor.submit(() -> startPlayerTurn(player));
         }
         executor.shutdown();
-        
-        // El hilo del coordinador espera a que todos los jugadores terminen su turno
+
         try {
             barrier.await(); // Esperar a que todos los jugadores terminen
         } catch (InterruptedException | BrokenBarrierException e) {
             e.printStackTrace();
         }
-        
-        // Esperar a que el executor termine
+
         try {
             if (!executor.awaitTermination(MAX_DECISION_TIME, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
@@ -116,19 +108,7 @@ public class Game {
             executor.shutdownNow();
             System.out.println("La espera fue interrumpida.");
         }
-        
-        dealerTurn(); // Iniciar el turno del dealer
     }
-    
-
-    private void dealerTurn() {
-        while (dealer.calculateScore() < 17) {
-            dealer.addCard(deck.drawCard());
-        }
-        endGame();
-    }
-
-    
 
 
     private void startPlayerTurn(Player player) {
@@ -146,6 +126,7 @@ public class Game {
         }
     }
 
+
     public void decideAction(Player player) {
         PlayerAction action = player.getEstado();
         switch (action) {
@@ -162,9 +143,20 @@ public class Game {
                 player.setfinishTurn(true);
                 break;
             default:
-            player.setfinishTurn(true);
+                player.setfinishTurn(true);
         }
     }
+
+
+    // FASE 5: Turno del Dealer
+    public void dealerTurn() {
+        while (dealer.calculateScore() < 17) {
+            dealer.addCard(deck.drawCard());
+        }
+    }
+
+   
+
 
     public void resetGame() {
         this.currentRound = 1;
@@ -179,9 +171,10 @@ public class Game {
         this.isActive = true;
     }
 
+    // FASE 6: Fin del Juego y Distribución de Ganancias
     public void endGame() {
         this.isActive = false;
-        deliverProfit();
+        deliverProfit(); 
     }
 
     public void deliverProfit() {
@@ -213,30 +206,25 @@ public class Game {
                     highestScore = playerScore;
                     winners.clear();
                     winners.add(player);
-                    System.out.println("Nuevo máximo: " + player.getName() + " con " + playerScore);
                 } else if (playerScore == highestScore) {
                     winners.add(player);
-                    System.out.println("Empate entre jugadores: " + player.getName());
                 }
             }
         }
     
         if (winners.isEmpty() && dealerScore <= 21) {
             winners.add(dealer);
-           
-        }
-    
-        if (!winners.isEmpty()) {
-            System.out.println("Ganadores: ");
-            for (Player winner : winners) {
-                System.out.println(winner.getName() + " con puntuación: " + winner.calculateScore());
-            }
-        } else {
-            System.out.println("No hay ganadores.");
         }
     
         return winners;
     }
+
+
+
+
+
+
+
 
     public Card dealCard() {
         Player currentPlayer = getCurrentPlayer();

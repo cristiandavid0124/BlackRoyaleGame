@@ -63,6 +63,7 @@ public class GameService {
     public void startGame(Room room) {
         Game game = new Game(room.getPlayers(), room.getRoomId());
         room.setGame(game); // Asumiendo que Room tiene un método para establecer el juego
+        game.startBetting(); // Comienza la fase de apuestas
         game.startGame(); // Iniciar el juego
     }
 
