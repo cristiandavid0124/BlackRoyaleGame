@@ -15,8 +15,8 @@ public class Game {
     private boolean isActive;
     private List<Player> winners;
     private int currentPlayerIndex;
-    private final int MAX_BET_TIME = 60;  // 60 segundos para apostar
-    private final int MAX_DECISION_TIME = 40;  // 40 segundos para decisiones
+    private final int maxBetTime = 60;  // 60 segundos para apostar
+    private final int maxDecisionTime = 40;  // 40 segundos para decisiones
 
     @Transient
     private Deck deck;
@@ -40,7 +40,7 @@ public class Game {
         for (Player player : players) {
             executor.submit(() -> {
                 try {
-                    ArrayList<Chip> chipsToBet = player.getChips();
+                    List<Chip> chipsToBet = player.getChips();
                     playerBet(player, chipsToBet);
                 } catch (Exception e) {
                     System.out.println("Error al realizar la apuesta para el jugador: " + player.getName());
@@ -49,10 +49,10 @@ public class Game {
         }
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(MAX_BET_TIME, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(maxBetTime, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
                 System.out.println("Se terminó el tiempo para apostar.");
-            }
+            }            
         } catch (InterruptedException e) {
             executor.shutdownNow();
             System.out.println("La espera fue interrumpida.");
@@ -63,8 +63,8 @@ public class Game {
         return dealer;
     }
 
-    private synchronized void playerBet(Player player, ArrayList<Chip> chips) {
-        player.setChips(chips);
+    private synchronized void playerBet(Player player, List<Chip> chipsToBet) {
+        player.setChips(chipsToBet);
     }
 
     // FASE 3: Fase de Reparto de Cartas Iniciales
@@ -107,7 +107,7 @@ public class Game {
         }
 
         try {
-            if (!executor.awaitTermination(MAX_DECISION_TIME, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(maxDecisionTime, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
                 System.out.println("Tiempo de espera agotado para los turnos de los jugadores.");
             }

@@ -53,7 +53,7 @@ public class Player {
     }
 
 
-    public void setChips(ArrayList<Chip> chips) {
+    public void setChips(List<Chip> chips) {
         availableChips.clear(); // Limpia las fichas actuales
         for (Chip chip : chips) {
             if (calculateTotalChipsValue() + chip.getValue() <= amount) {
@@ -62,8 +62,8 @@ public class Player {
             }
         }
     }
-
-    public ArrayList<Chip> getChips() {
+    
+    public List<Chip> getChips() {
         return availableChips; 
     }
 
