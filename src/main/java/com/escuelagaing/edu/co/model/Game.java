@@ -15,8 +15,8 @@ public class Game {
     private boolean isActive;
     private List<Player> winners;
     private int currentPlayerIndex;
-    private final int maxBetTime = 60;  // 60 segundos para apostar
-    private final int maxDecisionTime = 40;  // 40 segundos para decisiones
+    private static final int MAX_BET_TIME = 60;  // 60 segundos para apostar
+    private static final int MAX_DECISION_TIME = 40;  // 40 segundos para decisiones
 
     @Transient
     private Deck deck;
@@ -49,13 +49,14 @@ public class Game {
         }
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(maxBetTime, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(MAX_BET_TIME, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
                 System.out.println("Se terminó el tiempo para apostar.");
-            }            
+            }
         } catch (InterruptedException e) {
             executor.shutdownNow();
             System.out.println("La espera fue interrumpida.");
+            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
         }
     }
 
@@ -103,17 +104,19 @@ public class Game {
         try {
             barrier.await(); // Esperar a que todos los jugadores terminen
         } catch (InterruptedException | BrokenBarrierException e) {
-            e.printStackTrace();
+            System.out.println("Error en la barrera durante los turnos de los jugadores.");
+            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
         }
 
         try {
-            if (!executor.awaitTermination(maxDecisionTime, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(MAX_DECISION_TIME, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
                 System.out.println("Tiempo de espera agotado para los turnos de los jugadores.");
             }
         } catch (InterruptedException e) {
             executor.shutdownNow();
             System.out.println("La espera fue interrumpida.");
+            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
         }
     }
 
@@ -128,6 +131,7 @@ public class Game {
                 barrier.await(); // Esperar en la barrera
             } catch (InterruptedException | BrokenBarrierException e) {
                 System.out.println("Error al esperar en la barrera para " + player.getName());
+                Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
             }
         }
     }
@@ -214,7 +218,6 @@ public class Game {
     
         if (winners.isEmpty() && dealerScore <= 21) {
             // Si no hay jugadores ganadores y el dealer no se pasó, el dealer gana
-            // Puedes manejar esta lógica según tus reglas de negocio
         }
     
         return winners;
@@ -254,9 +257,6 @@ public class Game {
         dealer.resetHand();
     }
 
-    // Getters y setters adicionales si es necesario
-
-    // Añade este método para acceder al mazo en el servicio
     public Deck getDeck() {
         return deck;
     }

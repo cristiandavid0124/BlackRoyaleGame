@@ -138,8 +138,8 @@ public class GameTest {
         List<Player> players = new ArrayList<>();
         User user1 = new User("1", "user1@example.com", "Player1");
         User user2 = new User("2", "user2@example.com", "Player2");
-        Player player1 = new Player(user1, "room1", 10000, false);
-        Player player2 = new Player(user2, "room1", 10000, false);
+        Player player1 = new Player(user1, "room1", 10000);
+        Player player2 = new Player(user2, "room1", 10000);
         players.add(player1);
         players.add(player2);
         ArrayList<Chip> chipsPlayer1 = new ArrayList<>();

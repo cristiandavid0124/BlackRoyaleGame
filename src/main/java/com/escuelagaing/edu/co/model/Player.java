@@ -19,10 +19,9 @@ public class Player {
     private ArrayList<Chip> availableChips;
 
 
-    public Player(User user,String roomId, double amount,boolean finishTurn) {
+    public Player(User user,String roomId, double amount) {
         
         this.user = user; 
-        this.name = name;
         this.roomId = roomId; 
         this.amount = amount;
         this.hand = new ArrayList<>();
