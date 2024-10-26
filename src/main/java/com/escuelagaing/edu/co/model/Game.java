@@ -17,6 +17,7 @@ public class Game {
     private int currentPlayerIndex;
     private static final int MAX_BET_TIME = 60;  // 60 segundos para apostar
     private static final int MAX_DECISION_TIME = 40;  // 40 segundos para decisiones
+    private static final String SCORE_TEXT = " - Puntuación: ";  // Constant for repeated string literal
 
     @Transient
     private Deck deck;
@@ -86,11 +87,11 @@ public class Game {
         for (Player player : players) {
             player.addCard(deck.drawCard());
             player.addCard(deck.drawCard());
-            System.out.println("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + " - Puntuación: " + player.calculateScore());
+            System.out.println("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + SCORE_TEXT + player.calculateScore());
         }
         dealer.addCard(deck.drawCard());
         dealer.addCard(deck.drawCard());
-        System.out.println("Dealer - Cartas: " + dealer.getHand() + " - Puntuación: " + dealer.calculateScore());
+        System.out.println("Dealer - Cartas: " + dealer.getHand() + SCORE_TEXT + dealer.calculateScore());
     }
 
     // FASE 4: Fase de Decisiones de Jugadores
@@ -198,7 +199,7 @@ public class Game {
         
         for (Player player : players) {
             int playerScore = player.calculateScore();
-            System.out.println("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + " - Puntuación: " + playerScore);
+            System.out.println("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + SCORE_TEXT + playerScore);
     
             if (playerScore > 21) {
                 System.out.println("Jugador " + player.getName() + " se pasó de 21.");
