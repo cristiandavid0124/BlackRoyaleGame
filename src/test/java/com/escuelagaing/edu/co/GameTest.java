@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import com.escuelagaing.edu.co.model.*;
 
-public class GameTest {
+class GameTest {
 
     @Test
-    public void testStartGame() {
+    void testStartGame() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -31,7 +31,7 @@ public class GameTest {
     }
 
     @Test
-    public void testStartBetting() {
+    void testStartBetting() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -51,7 +51,7 @@ public class GameTest {
     }
 
     @Test
-    public void testPlayerTurns() {
+    void testPlayerTurns() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -74,7 +74,7 @@ public class GameTest {
     }
 
     @Test
-    public void testDealerTurn() {
+    void testDealerTurn() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -98,7 +98,7 @@ public class GameTest {
     }
 
     @Test
-    public void testCalculateWinners() {
+    void testCalculateWinners() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -117,7 +117,7 @@ public class GameTest {
     }
 
     @Test
-    public void testEndGame() {
+    void testEndGame() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -157,7 +157,7 @@ public class GameTest {
         return players;
     }
 
-    private void simulateGameEnd(Game game) {
+    void simulateGameEnd(Game game) {
         // Simular las manos de los jugadores y el dealer
         Player player1 = game.getPlayers().get(0);
         Player player2 = game.getPlayers().get(1);
