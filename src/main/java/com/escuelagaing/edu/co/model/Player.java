@@ -33,7 +33,7 @@ public class Player {
     }
 
     public String getId(){
-        return user.getId();
+        return user.getEmail();
     }
         
     public String getRoomId() {

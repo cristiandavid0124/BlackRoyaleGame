@@ -1,49 +1,55 @@
 package com.escuelagaing.edu.co.service;
 
 
-import com.escuelagaing.edu.co.model.User;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.escuelagaing.edu.co.repository.UserRepository;
+import com.escuelagaing.edu.co.model.User;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class UserService {
 
-    private final Map<String, User> userMap = new HashMap<>(); // Almacena los usuarios en memoria
+    private final UserRepository userRepository;
+
+    @Autowired
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     // Crear un nuevo usuario
     public User createUser(User user) {
-        userMap.put(user.getId(), user); 
-        return user;
+        // Verificar si el usuario ya existe
+        if (userRepository.existsById(user.getEmail())) {
+            throw new RuntimeException("El usuario con email " + user.getEmail() + " ya existe.");
+        }
+        return userRepository.save(user);
     }
 
     // Obtener un usuario por ID
     public Optional<User> getUserById(String id) {
-        return Optional.ofNullable(userMap.get(id)); 
+        return userRepository.findById(id);
     }
 
     // Actualizar un usuario
     public User updateUser(String id, User userDetails) {
         // Verificar si el usuario existe
-        User user = userMap.get(id);
-        if (user == null) {
-            throw new RuntimeException("Usuario no encontrado con id: " + id);
-        }
-        
-        // Actualizar los detalles del usuario
-        user.setEmail(userDetails.getEmail());
-        user.setName(userDetails.getName());
-
-
-        return user; // Retornar el usuario actualizado
+        return userRepository.findById(id)
+                .map(user -> {
+                    user.setNickName(userDetails.getNickName());
+                    user.setName(userDetails.getName());
+                    // Actualizar otros campos según sea necesario
+                    return userRepository.save(user); // Guardar los cambios en la base de datos
+                })
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con id: " + id));
     }
 
     // Eliminar un usuario
     public void deleteUser(String id) {
-        userMap.remove(id); // Eliminar el usuario del mapa
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("Usuario no encontrado con id: " + id);
+        }
+        userRepository.deleteById(id);
     }
-
-    // Otras operaciones personalizadas pueden ser agregadas aquí
 }

@@ -136,8 +136,8 @@ public class GameTest {
 
     private List<Player> createPlayers() {
         List<Player> players = new ArrayList<>();
-        User user1 = new User("1", "user1@example.com", "Player1");
-        User user2 = new User("2", "user2@example.com", "Player2");
+        User user1 = new User("user1@example.com", "Player1");
+        User user2 = new User("user2@example.com", "Player2");
         Player player1 = new Player(user1, "room1", 10000, false);
         Player player2 = new Player(user2, "room1", 10000, false);
         players.add(player1);
