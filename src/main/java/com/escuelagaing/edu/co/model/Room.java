@@ -1,16 +1,18 @@
 package com.escuelagaing.edu.co.model;
 
 
-
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+@Document(collection = "Room") 
 
 public class Room {
-
+    @Id
     private String id;
     private List<Player> players;
     private Game game;
-    private RoomStatus status;  // Usamos el enum RoomStatus
+    private RoomStatus status;  
     private final int maxPlayers = 5;
     private final int minPlayers = 3;
 

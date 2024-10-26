@@ -4,25 +4,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
+import org.bson.types.ObjectId;
+import org.springframework.data.annotation.Transient;
 
 public class Game {
+
+    private String id;
     private List<Player> players;
     private Dealer dealer;
     private boolean isActive;
-    private int currentRound;
     private List<Player> winners;
-    private Deck deck;
     private int currentPlayerIndex;
     private final int MAX_BET_TIME = 60;  // 60 segundos para apostar
-    private final int MAX_DECISION_TIME = 40;  // 40 segundos por decisión
+    private final int MAX_DECISION_TIME = 40;  // 40 segundos para decisiones
+
+    @Transient
+    private Deck deck;
+
+    @Transient
     private CyclicBarrier barrier;
 
     public Game(List<Player> players, String roomId) {
+        this.id = ObjectId.get().toHexString();
         this.players = players;
         this.winners = new ArrayList<>();
         this.dealer = new Dealer(roomId);
         this.isActive = true;
-        this.currentRound = 1;
         this.currentPlayerIndex = 0;
         this.barrier = new CyclicBarrier(players.size() + 1); 
     }
@@ -110,7 +117,6 @@ public class Game {
         }
     }
 
-
     private void startPlayerTurn(Player player) {
         try {
             decideAction(player);  // Decisión de acción del jugador
@@ -125,7 +131,6 @@ public class Game {
             }
         }
     }
-
 
     public void decideAction(Player player) {
         PlayerAction action = player.getEstado();
@@ -147,7 +152,6 @@ public class Game {
         }
     }
 
-
     // FASE 5: Turno del Dealer
     public void dealerTurn() {
         while (dealer.calculateScore() < 17) {
@@ -155,11 +159,7 @@ public class Game {
         }
     }
 
-   
-
-
     public void resetGame() {
-        this.currentRound = 1;
         for (Player player : players) {
             player.getHand().clear();
             player.setBet(0);
@@ -213,18 +213,12 @@ public class Game {
         }
     
         if (winners.isEmpty() && dealerScore <= 21) {
-            winners.add(dealer);
+            // Si no hay jugadores ganadores y el dealer no se pasó, el dealer gana
+            // Puedes manejar esta lógica según tus reglas de negocio
         }
     
         return winners;
     }
-
-
-
-
-
-
-
 
     public Card dealCard() {
         Player currentPlayer = getCurrentPlayer();
@@ -258,5 +252,12 @@ public class Game {
             player.setfinishTurn(false);
         }
         dealer.resetHand();
+    }
+
+    // Getters y setters adicionales si es necesario
+
+    // Añade este método para acceder al mazo en el servicio
+    public Deck getDeck() {
+        return deck;
     }
 }

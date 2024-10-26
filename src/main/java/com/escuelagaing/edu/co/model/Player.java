@@ -3,7 +3,11 @@ package com.escuelagaing.edu.co.model;
 import java.util.ArrayList;
 import java.util.List;
 
+
+
+
 public class Player {
+
     private User user; 
     public String name;
     private String roomId; // ID de la sala a la que pertenece el jugador
@@ -16,6 +20,7 @@ public class Player {
 
 
     public Player(User user,String roomId, double amount,boolean finishTurn) {
+        
         this.user = user; 
         this.name = name;
         this.roomId = roomId; 

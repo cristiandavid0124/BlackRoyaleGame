@@ -1,14 +1,16 @@
 
 package com.escuelagaing.edu.co.model;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document(collection = "User")
 public class User {
 
-    private String id; // ID del usuario en Microsoft Entra
+    @Id
+    private String id;
     private String email; // Correo electrónico del usuario
     private String name; 
-    private String displayName; 
-    private String givenName; 
-    private String familyName; 
+
 
     
     // Constructor
@@ -16,13 +18,11 @@ public class User {
     }
 
 
-    public User(String id, String email, String name, String displayName, String givenName, String familyName) {
+    public User(String id, String email, String name) {
         this.id = id;
         this.email = email;
         this.name = name;
-        this.displayName = displayName;
-        this.givenName = givenName;
-        this.familyName = familyName;
+  
     }
 
     // Getters y Setters
@@ -50,29 +50,6 @@ public class User {
         this.name = name;
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public String getGivenName() {
-        return givenName;
-    }
-
-    public void setGivenName(String givenName) {
-        this.givenName = givenName;
-    }
-
-    public String getFamilyName() {
-        return familyName;
-    }
-
-    public void setFamilyName(String familyName) {
-        this.familyName = familyName;
-    }
-
+   
 
 }

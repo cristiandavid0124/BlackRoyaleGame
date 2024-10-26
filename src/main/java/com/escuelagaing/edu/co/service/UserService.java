@@ -35,9 +35,7 @@ public class UserService {
         // Actualizar los detalles del usuario
         user.setEmail(userDetails.getEmail());
         user.setName(userDetails.getName());
-        user.setDisplayName(userDetails.getDisplayName());
-        user.setGivenName(userDetails.getGivenName());
-        user.setFamilyName(userDetails.getFamilyName());
+
 
         return user; // Retornar el usuario actualizado
     }
