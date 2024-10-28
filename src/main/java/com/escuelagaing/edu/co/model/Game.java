@@ -150,9 +150,9 @@ public class Game {
             case STAND:
                 player.setfinishTurn(true);
                 break;
-            case DOUBLE:
-                double doubleBet = player.getBet() * 2;
-                player.placeBet(doubleBet);
+                case DOUBLE:
+                double additionalBet = player.getBet(); // Tomar solo la cantidad inicial
+                player.placeBet(additionalBet); // Apostar adicionalmente la cantidad inicial
                 player.addCard(deck.drawCard());
                 player.setfinishTurn(true);
                 break;

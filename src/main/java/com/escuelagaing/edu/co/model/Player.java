@@ -122,7 +122,7 @@ public class Player {
 
 
     public void setBet(double bet) {
-        this.bet = bet;
+        this.bet += bet;
     }
     public void setfinishTurn(boolean estado){
          finishTurn = estado;

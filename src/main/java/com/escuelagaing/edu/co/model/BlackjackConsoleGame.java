@@ -80,13 +80,13 @@ public class BlackjackConsoleGame {
                     break;
                 case 3:
                     player.setEstado(PlayerAction.DOUBLE);
-                    if (player.placeBet(player.getBet() * 2)) {
+                  
                         game.decideAction(player);
                         System.out.println(player.getName() + " ha elegido DOUBLE.");
                         playerFinished = true;
-                    } else {
+                  
                         System.out.println("Fondos insuficientes para doblar la apuesta.");
-                    }
+    
                     break;
                 default:
                     System.out.println("Opción no válida.");
@@ -113,9 +113,7 @@ public class BlackjackConsoleGame {
             }
         }
 
-        for (Player player : winners) {
-            System.out.println(player.getName() + ": " + player.getAmount() + ":"+ player.getBet()) ;
-        }
+
         // Distribuir ganancias después de identificar ganadores
         game.deliverProfit(); 
 
