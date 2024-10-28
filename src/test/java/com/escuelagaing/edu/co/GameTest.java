@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import com.escuelagaing.edu.co.model.*;
 
-public class GameTest {
+class GameTest {
 
     @Test
-    public void testStartGame() {
+    void testStartGame() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -31,7 +31,7 @@ public class GameTest {
     }
 
     @Test
-    public void testStartBetting() {
+    void testStartBetting() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -51,7 +51,7 @@ public class GameTest {
     }
 
     @Test
-    public void testPlayerTurns() {
+    void testPlayerTurns() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -74,7 +74,7 @@ public class GameTest {
     }
 
     @Test
-    public void testDealerTurn() {
+    void testDealerTurn() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -98,7 +98,7 @@ public class GameTest {
     }
 
     @Test
-    public void testCalculateWinners() {
+    void testCalculateWinners() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -117,7 +117,7 @@ public class GameTest {
     }
 
     @Test
-    public void testEndGame() {
+    void testEndGame() {
         // Crear jugadores
         List<Player> players = createPlayers();
         
@@ -138,8 +138,8 @@ public class GameTest {
         List<Player> players = new ArrayList<>();
         User user1 = new User("1", "user1@example.com", "Player1");
         User user2 = new User("2", "user2@example.com", "Player2");
-        Player player1 = new Player(user1, "room1", 10000, false);
-        Player player2 = new Player(user2, "room1", 10000, false);
+        Player player1 = new Player(user1, "room1", 10000);
+        Player player2 = new Player(user2, "room1", 10000);
         players.add(player1);
         players.add(player2);
         ArrayList<Chip> chipsPlayer1 = new ArrayList<>();
@@ -157,7 +157,7 @@ public class GameTest {
         return players;
     }
 
-    private void simulateGameEnd(Game game) {
+    void simulateGameEnd(Game game) {
         // Simular las manos de los jugadores y el dealer
         Player player1 = game.getPlayers().get(0);
         Player player2 = game.getPlayers().get(1);

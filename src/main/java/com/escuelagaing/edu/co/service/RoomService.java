@@ -12,8 +12,13 @@ import java.util.Optional;
 @Service
 public class RoomService {
 
+    private final RoomRepository roomRepository;
+
+    // Constructor injection
     @Autowired
-    private RoomRepository roomRepository;
+    public RoomService(RoomRepository roomRepository) {
+        this.roomRepository = roomRepository;
+    }
 
     private String generateUniqueRoomId() {
         return "room-" + System.currentTimeMillis();
@@ -86,3 +91,4 @@ public class RoomService {
         }
     }
 }
+

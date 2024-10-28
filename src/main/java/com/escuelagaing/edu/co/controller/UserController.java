@@ -1,5 +1,6 @@
 package com.escuelagaing.edu.co.controller;
 
+import com.escuelagaing.edu.co.dto.UserDTO;
 import com.escuelagaing.edu.co.model.User;
 import com.escuelagaing.edu.co.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,12 @@ public class UserController {
 
     // Crear un nuevo usuario
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ResponseEntity<User> createUser(@RequestBody UserDTO userDto) {
+        User user = new User();
+        user.setName(userDto.getName());
+        user.setEmail(userDto.getEmail());
+        // Map other fields as needed
+
         User createdUser = userService.createUser(user);
         return ResponseEntity.ok(createdUser);
     }
@@ -36,14 +42,22 @@ public class UserController {
 
     // Actualizar un usuario
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User userDetails) {
+    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody UserDTO userDetails) {
         try {
-            User updatedUser = userService.updateUser(id, userDetails);
+            // Convertir el DTO a la entidad
+            User user = new User();
+            user.setName(userDetails.getName());
+            user.setEmail(userDetails.getEmail());
+            // Mapear otros campos según sea necesario
+    
+            // Llamar al servicio de actualización
+            User updatedUser = userService.updateUser(id, user);
             return ResponseEntity.ok(updatedUser);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }
+    
 
     // Eliminar un usuario
     @DeleteMapping("/{id}")
