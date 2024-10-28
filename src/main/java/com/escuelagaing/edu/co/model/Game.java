@@ -3,11 +3,15 @@ package com.escuelagaing.edu.co.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Transient;
 
 public class Game {
+
+    private static final Logger logger = LoggerFactory.getLogger(Game.class);
 
     private String id;
     private List<Player> players;
@@ -15,8 +19,9 @@ public class Game {
     private boolean isActive;
     private List<Player> winners;
     private int currentPlayerIndex;
-    private final int maxBetTime = 60;  // 60 segundos para apostar
-    private final int maxDecisionTime = 40;  // 40 segundos para decisiones
+    private static final int MAX_BET_TIME = 60;  // 60 segundos para apostar
+    private static final int MAX_DECISION_TIME = 40;  // 40 segundos para decisiones
+    private static final String SCORE_TEXT = " - Puntuación: ";  // Constant for repeated string literal
 
     @Transient
     private Deck deck;
@@ -43,19 +48,20 @@ public class Game {
                     List<Chip> chipsToBet = player.getChips();
                     playerBet(player, chipsToBet);
                 } catch (Exception e) {
-                    System.out.println("Error al realizar la apuesta para el jugador: " + player.getName());
+                    logger.error("Error al realizar la apuesta para el jugador: " + player.getName(), e);
                 }
             });
         }
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(maxBetTime, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(MAX_BET_TIME, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
-                System.out.println("Se terminó el tiempo para apostar.");
-            }            
+                logger.info("Se terminó el tiempo para apostar.");
+            }
         } catch (InterruptedException e) {
             executor.shutdownNow();
-            System.out.println("La espera fue interrumpida.");
+            logger.error("La espera fue interrumpida.", e);
+            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
         }
     }
 
@@ -81,15 +87,15 @@ public class Game {
     }
 
     public void dealInitialCards() {
-        System.out.println("Repartiendo cartas iniciales...");
+        logger.info("Repartiendo cartas iniciales...");
         for (Player player : players) {
             player.addCard(deck.drawCard());
             player.addCard(deck.drawCard());
-            System.out.println("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + " - Puntuación: " + player.calculateScore());
+            logger.info("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + SCORE_TEXT + player.calculateScore());
         }
         dealer.addCard(deck.drawCard());
         dealer.addCard(deck.drawCard());
-        System.out.println("Dealer - Cartas: " + dealer.getHand() + " - Puntuación: " + dealer.calculateScore());
+        logger.info("Dealer - Cartas: " + dealer.getHand() + SCORE_TEXT + dealer.calculateScore());
     }
 
     // FASE 4: Fase de Decisiones de Jugadores
@@ -103,17 +109,19 @@ public class Game {
         try {
             barrier.await(); // Esperar a que todos los jugadores terminen
         } catch (InterruptedException | BrokenBarrierException e) {
-            e.printStackTrace();
+            logger.error("Error en la barrera durante los turnos de los jugadores.", e);
+            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
         }
 
         try {
-            if (!executor.awaitTermination(maxDecisionTime, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(MAX_DECISION_TIME, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
-                System.out.println("Tiempo de espera agotado para los turnos de los jugadores.");
+                logger.info("Tiempo de espera agotado para los turnos de los jugadores.");
             }
         } catch (InterruptedException e) {
             executor.shutdownNow();
-            System.out.println("La espera fue interrumpida.");
+            logger.error("La espera fue interrumpida.", e);
+            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
         }
     }
 
@@ -121,13 +129,14 @@ public class Game {
         try {
             decideAction(player);  // Decisión de acción del jugador
         } catch (Exception e) {
-            System.out.println("Error en el turno del jugador: " + player.getName());
+            logger.error("Error en el turno del jugador: " + player.getName(), e);
         } finally {
             player.setfinishTurn(true);
             try {
                 barrier.await(); // Esperar en la barrera
             } catch (InterruptedException | BrokenBarrierException e) {
-                System.out.println("Error al esperar en la barrera para " + player.getName());
+                logger.error("Error al esperar en la barrera para " + player.getName(), e);
+                Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
             }
         }
     }
@@ -190,14 +199,14 @@ public class Game {
         
         winners.clear();
     
-        System.out.println("Puntuación del Dealer: " + dealerScore);
+        logger.info("Puntuación del Dealer: " + dealerScore);
         
         for (Player player : players) {
             int playerScore = player.calculateScore();
-            System.out.println("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + " - Puntuación: " + playerScore);
+            logger.info("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + SCORE_TEXT + playerScore);
     
             if (playerScore > 21) {
-                System.out.println("Jugador " + player.getName() + " se pasó de 21.");
+                logger.info("Jugador " + player.getName() + " se pasó de 21.");
                 continue;
             }
     
@@ -214,7 +223,6 @@ public class Game {
     
         if (winners.isEmpty() && dealerScore <= 21) {
             // Si no hay jugadores ganadores y el dealer no se pasó, el dealer gana
-            // Puedes manejar esta lógica según tus reglas de negocio
         }
     
         return winners;
@@ -254,9 +262,6 @@ public class Game {
         dealer.resetHand();
     }
 
-    // Getters y setters adicionales si es necesario
-
-    // Añade este método para acceder al mazo en el servicio
     public Deck getDeck() {
         return deck;
     }
