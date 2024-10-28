@@ -21,10 +21,8 @@ public class Room {
         this.players = new ArrayList<>();
         this.status = RoomStatus.EN_ESPERA;  // Estado inicial con enum
     }
-
-
      // Método para obtener un jugador por ID
-     public Player getPlayer(String playerId) {
+    public Player getPlayer(String playerId) {
         for (Player player : players) {
             if (player.getId().equals(playerId)) {
                 return player;

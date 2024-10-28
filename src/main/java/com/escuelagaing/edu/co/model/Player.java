@@ -3,9 +3,6 @@ package com.escuelagaing.edu.co.model;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
-
 public class Player {
 
     private User user; 
@@ -19,7 +16,7 @@ public class Player {
     private ArrayList<Chip> availableChips;
 
 
-    public Player(User user,String roomId, double amount,boolean finishTurn) {
+    public Player(User user, String name, String roomId, double amount) {
         
         this.user = user; 
         this.name = name;
@@ -29,7 +26,6 @@ public class Player {
         this.finishTurn = false;
         this.estado = null;  
         this.availableChips = new ArrayList<>(); // Inicia como una lista vacía
-
     }
 
     public String getId(){
@@ -53,7 +49,7 @@ public class Player {
     }
 
 
-    public void setChips(ArrayList<Chip> chips) {
+    public void setChips(List<Chip> chips) {
         availableChips.clear(); // Limpia las fichas actuales
         for (Chip chip : chips) {
             if (calculateTotalChipsValue() + chip.getValue() <= amount) {
@@ -62,8 +58,8 @@ public class Player {
             }
         }
     }
-
-    public ArrayList<Chip> getChips() {
+    
+    public List<Chip> getChips() {
         return availableChips; 
     }
 
