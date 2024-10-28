@@ -122,7 +122,7 @@ public class Player {
 
 
     public void setBet(double bet) {
-        this.bet = bet;
+        this.bet += bet;
     }
     public void setfinishTurn(boolean estado){
          finishTurn = estado;
@@ -131,22 +131,19 @@ public class Player {
 
     public boolean placeBet(double bet) {
         if (bet <= this.amount) {  
+            this.amount -= bet; // Descontar la apuesta del saldo
             setBet(bet);
-            decreaseBalance(bet);
             return true; 
         }
         return false;
     }
-
     
-
-    public void  revenue() {
-       
-           amount += bet*2;
-           
+    public void revenue(boolean isWinner) {
+        if (isWinner) {
+            this.amount += bet * 2; // Recupera la apuesta y gana el equivalente
+        }
+        this.bet = 0; // Reinicia la apuesta
     }
-       
-
     public int calculateScore() {
         int score = 0;
         int aceCount = 0; // Contar los Ases

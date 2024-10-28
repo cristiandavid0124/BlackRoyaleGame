@@ -150,9 +150,9 @@ public class Game {
             case STAND:
                 player.setfinishTurn(true);
                 break;
-            case DOUBLE:
-                double doubleBet = player.getBet() * 2;
-                player.placeBet(doubleBet);
+                case DOUBLE:
+                double additionalBet = player.getBet(); // Tomar solo la cantidad inicial
+                player.placeBet(additionalBet); // Apostar adicionalmente la cantidad inicial
                 player.addCard(deck.drawCard());
                 player.setfinishTurn(true);
                 break;
@@ -188,15 +188,19 @@ public class Game {
 
     public void deliverProfit() {
         List<Player> winners = calculateWinners();
-        for (Player player : winners) {
-            player.revenue();
+        for (Player player : players) {
+            if (winners.contains(player)) {
+                player.revenue(true); // Si el jugador es ganador, aplica revenue(true)
+            } else {
+                player.revenue(false); // Si no es ganador, aplica revenue(false)
+            }
         }
     }
-
     public List<Player> calculateWinners() {
         int dealerScore = dealer.calculateScore();
         int highestScore = 0;
         
+        // Limpiar la lista de ganadores al inicio para evitar conflictos
         winners.clear();
     
         logger.info("Puntuación del Dealer: " + dealerScore);
@@ -207,22 +211,18 @@ public class Game {
     
             if (playerScore > 21) {
                 logger.info("Jugador " + player.getName() + " se pasó de 21.");
-                continue;
+                continue; // Si el jugador se pasó de 21, no puede ganar
             }
     
             if (playerScore > dealerScore || dealerScore > 21) {
                 if (playerScore > highestScore) {
                     highestScore = playerScore;
-                    winners.clear();
+                    winners.clear(); // Actualizar la lista de ganadores con un nuevo puntaje más alto
                     winners.add(player);
                 } else if (playerScore == highestScore) {
                     winners.add(player);
                 }
             }
-        }
-    
-        if (winners.isEmpty() && dealerScore <= 21) {
-            // Si no hay jugadores ganadores y el dealer no se pasó, el dealer gana
         }
     
         return winners;
@@ -256,7 +256,6 @@ public class Game {
     public void resetHands() {
         for (Player player : players) {
             player.resetHand();
-            player.setBet(0);
             player.setfinishTurn(false);
         }
         dealer.resetHand();
