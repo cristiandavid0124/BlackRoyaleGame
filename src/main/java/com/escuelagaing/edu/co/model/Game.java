@@ -240,7 +240,10 @@ public class Game {
     }
 
     public Player getCurrentPlayer() {
-        return players.get(currentPlayerIndex);
+        if (players != null && !players.isEmpty()) {
+            return players.get(0); // O el índice correspondiente
+        }
+        return null; // O manejarlo de otra manera apropiada
     }
 
     public void nextPlayer() {
