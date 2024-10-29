@@ -199,12 +199,18 @@ public class Game {
     public List<Player> calculateWinners() {
         int dealerScore = dealer.calculateScore();
         int highestScore = 0;
-        
+    
         // Limpiar la lista de ganadores al inicio para evitar conflictos
         winners.clear();
     
         logger.info("Puntuación del Dealer: " + dealerScore);
-        
+    
+        // Verificar si el dealer tiene una puntuación válida para competir
+        if (dealerScore <= 21) {
+            highestScore = dealerScore;
+            winners.add(dealer);
+        }
+    
         for (Player player : players) {
             int playerScore = player.calculateScore();
             logger.info("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + SCORE_TEXT + playerScore);
@@ -214,14 +220,12 @@ public class Game {
                 continue; // Si el jugador se pasó de 21, no puede ganar
             }
     
-            if (playerScore > dealerScore || dealerScore > 21) {
-                if (playerScore > highestScore) {
-                    highestScore = playerScore;
-                    winners.clear(); // Actualizar la lista de ganadores con un nuevo puntaje más alto
-                    winners.add(player);
-                } else if (playerScore == highestScore) {
-                    winners.add(player);
-                }
+            if (playerScore > highestScore) {
+                highestScore = playerScore;
+                winners.clear(); // Actualizar la lista de ganadores con un nuevo puntaje más alto
+                winners.add(player);
+            } else if (playerScore == highestScore) {
+                winners.add(player);
             }
         }
     
