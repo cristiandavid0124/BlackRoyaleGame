@@ -31,6 +31,7 @@ public class UserController {
             User user = new User();
             user.setName(userDto.getName());
             user.setEmail(userDto.getEmail());
+            user.setNickName("NULL");
 
             // Mapear otros campos según sea necesario
 
@@ -57,10 +58,9 @@ public class UserController {
         try {
             // Convertir el DTO a la entidad
             User user = new User();
-            user.setName(userDetails.getName());
-            user.setEmail(userDetails.getEmail());
+            
+            user.setNickName(userDetails.getNickName());
             // Mapear otros campos según sea necesario
-    
             // Llamar al servicio de actualización
             User updatedUser = userService.updateUser(id, user);
             return ResponseEntity.ok(updatedUser);
