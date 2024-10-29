@@ -29,7 +29,8 @@ public class BlackJackSocketIOConfig {
 
     private DataListener<String> joinRoomListener() {
         return (client, roomId, ackSender) -> {
-            System.out.println("Client joined Blackjack room: " + roomId);
+            String playerName = client.getHandshakeData().getSingleUrlParam("name");
+            System.out.println("Player: " + playerName + " se unió al Room " + roomId);
             subscribeToGameEvents(roomId);
 
             // Aumentar el contador de conexiones para la sala
