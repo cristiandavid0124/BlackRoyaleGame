@@ -145,4 +145,17 @@ public class Room {
     public boolean isFull() {
         return players.size() == maxPlayers;
     }
+
+    public Player getPlayerByName(String playerName) {
+        for (Player player : players) {
+            if (player.getName().equals(playerName)) {
+                return player; // Retornar el jugador si se encuentra el nombre
+            }
+        }
+        return null; // Retornar null si no se encuentra el jugador con el nombre dado
+    }
+    
+    public int getMinPlayers() {
+        return minPlayers;
+    }
 }
