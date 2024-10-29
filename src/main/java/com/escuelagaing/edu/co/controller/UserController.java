@@ -26,10 +26,15 @@ public class UserController {
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody UserDTO userDto) {
         try {
+            System.out.println("Datos de recidor " +userDto.getEmail() +" "+ userDto.getName());
+
             User user = new User();
             user.setName(userDto.getName());
             user.setEmail(userDto.getEmail());
+
             // Mapear otros campos según sea necesario
+
+            System.out.println("Datos de nuevo usuario " +userDto.getEmail() +" "+ userDto.getName());
 
             User createdUser = userService.createUser(user);
             return ResponseEntity.ok(createdUser);
