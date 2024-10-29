@@ -3,9 +3,6 @@ package com.escuelagaing.edu.co.model;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
-
 public class Player {
 
     private User user; 
@@ -19,20 +16,20 @@ public class Player {
     private ArrayList<Chip> availableChips;
 
 
-    public Player(User user,String roomId, double amount) {
+    public Player(User user, String name, String roomId, double amount) {
         
         this.user = user; 
+        this.name = name;
         this.roomId = roomId; 
         this.amount = amount;
         this.hand = new ArrayList<>();
         this.finishTurn = false;
         this.estado = null;  
         this.availableChips = new ArrayList<>(); // Inicia como una lista vacía
-
     }
 
     public String getId(){
-        return user.getId();
+        return user.getEmail();
     }
         
     public String getRoomId() {

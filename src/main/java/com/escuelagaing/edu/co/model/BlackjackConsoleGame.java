@@ -130,8 +130,8 @@ public class BlackjackConsoleGame {
         User user1 = new User("1", "player1@example.com", "Jugador 1");
         User user2 = new User("2", "player2@example.com", "Jugador 2");
 
-        Player player1 = new Player(user1, "room1", 1000);
-        Player player2 = new Player(user2, "room1", 1000);
+        Player player1 = new Player(user1, "pepe","room1", 1000);
+        Player player2 = new Player(user2, "Pedro", "room1", 1000);
 
         players.add(player1);
         players.add(player2);

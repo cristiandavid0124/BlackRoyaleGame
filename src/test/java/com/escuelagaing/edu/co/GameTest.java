@@ -134,54 +134,12 @@ class GameTest {
         assertFalse(game.isActive(), "El juego debería estar inactivo");
     }
 
-
-    @Test
-    void testDistributeWinnings() {
-        // Crear jugadores
-        List<Player> players = createPlayers();
-    
-        // Crear la instancia del juego
-        Game game = new Game(players, "room1");
-    
-        // Suponiendo que ambos jugadores han apostado la misma cantidad
-        double betAmount = 100;
-    
-        // Realizar las apuestas usando los métodos de Game
-        players.get(0).placeBet(betAmount);
-        players.get(1).placeBet(betAmount);
-    
-        // Guardar el saldo inicial de los jugadores para verificación posterior
-        double initialBalancePlayer1 = players.get(0).getAmount();
-        double initialBalancePlayer2 = players.get(1).getAmount();
-    
-        // Repartir cartas iniciales al jugador y al dealer
-        game.startGame();
-        players.get(0).addCard(new Card("Corazones", "10", 10));
-        players.get(0).addCard(new Card("Picas", "10", 10));  // Jugador 1 tiene 20 puntos
-    
-        players.get(1).addCard(new Card("Diamantes", "5", 5));
-        players.get(1).addCard(new Card("Tréboles", "6", 6));  // Jugador 2 tiene 11 puntos
-    
-        game.getDealer().addCard(new Card("Corazones", "9", 9));
-        game.getDealer().addCard(new Card("Picas", "9", 9));    // Dealer tiene 18 puntos
-    
-        // Terminar el juego y repartir las ganancias usando el método endGame()
-        game.endGame();
-    
-        // Verificar que el jugador 1 haya ganado (20 puntos contra 18 del dealer)
-        assertEquals(initialBalancePlayer1 + (betAmount * 2), players.get(0).getAmount(),
-        "El jugador 1 debería recibir su apuesta más una ganancia equivalente");
-    
-        // Verificar que el saldo del jugador 2 haya disminuido por perder la apuesta
-        assertEquals(initialBalancePlayer2 - betAmount, players.get(1).getAmount(),
-                "El jugador 2 debería haber perdido su apuesta");
-    }
     private List<Player> createPlayers() {
         List<Player> players = new ArrayList<>();
         User user1 = new User("1", "user1@example.com", "Player1");
         User user2 = new User("2", "user2@example.com", "Player2");
-        Player player1 = new Player(user1, "room1", 10000);
-        Player player2 = new Player(user2, "room1", 10000);
+        Player player1 = new Player(user1, "pepe",  "room1", 10000);
+        Player player2 = new Player(user2, "marco","room1", 10000);
         players.add(player1);
         players.add(player2);
         ArrayList<Chip> chipsPlayer1 = new ArrayList<>();

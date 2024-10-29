@@ -4,12 +4,14 @@ import com.escuelagaing.edu.co.dto.UserDTO;
 import com.escuelagaing.edu.co.model.User;
 import com.escuelagaing.edu.co.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
 @RestController
+@CrossOrigin("*")
 @RequestMapping("/users")
 public class UserController {
 
@@ -23,13 +25,17 @@ public class UserController {
     // Crear un nuevo usuario
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody UserDTO userDto) {
-        User user = new User();
-        user.setName(userDto.getName());
-        user.setEmail(userDto.getEmail());
-        // Map other fields as needed
+        try {
+            User user = new User();
+            user.setName(userDto.getName());
+            user.setEmail(userDto.getEmail());
+            // Mapear otros campos según sea necesario
 
-        User createdUser = userService.createUser(user);
-        return ResponseEntity.ok(createdUser);
+            User createdUser = userService.createUser(user);
+            return ResponseEntity.ok(createdUser);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 
     // Obtener un usuario por ID
@@ -62,7 +68,11 @@ public class UserController {
     // Eliminar un usuario
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build(); // Retorna 204 No Content
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.noContent().build(); // Retorna 204 No Content
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
