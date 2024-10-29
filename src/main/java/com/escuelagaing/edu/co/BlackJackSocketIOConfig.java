@@ -1,6 +1,5 @@
 package com.escuelagaing.edu.co;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -8,16 +7,20 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
-import com.escuelagaing.edu.co.model.Game;
-import com.escuelagaing.edu.co.model.PlayerAction;
+import com.escuelagaing.edu.co.model.Player;
+import com.escuelagaing.edu.co.model.Room;
+import com.escuelagaing.edu.co.model.RoomStatus;
+import com.escuelagaing.edu.co.service.UserService;
 
 public class BlackJackSocketIOConfig {
     private SocketIOServer server;
-    private Map<String, Game> roomGames = new HashMap<>(); // Almacenar el estado del juego por sala
-    private Map<String, Integer> roomConnections = new HashMap<>(); // Contar conexiones por sala
+    private Map<String, Room> rooms = new HashMap<>(); // Almacenar las salas
+    private UserService userService;
 
-    public BlackJackSocketIOConfig(SocketIOServer server) {
+    public BlackJackSocketIOConfig(SocketIOServer server, UserService userService) {
         this.server = server;
+        this.userService = userService;  // Asignar UserService proporcionado por el contexto de Spring
+
         server.addConnectListener(onConnected());
         server.addDisconnectListener(onDisconnected());
 
@@ -30,54 +33,66 @@ public class BlackJackSocketIOConfig {
     private DataListener<String> joinRoomListener() {
         return (client, roomId, ackSender) -> {
             String playerName = client.getHandshakeData().getSingleUrlParam("name");
-            System.out.println("Player: " + playerName + " se unió al Room " + roomId);
-            subscribeToGameEvents(roomId);
-
-            // Aumentar el contador de conexiones para la sala
-            roomConnections.put(roomId, roomConnections.getOrDefault(roomId, 0) + 1);
-
-            // Crear un nuevo juego si no existe para esta sala
-            roomGames.computeIfAbsent(roomId, k -> new Game(new ArrayList<>(), roomId));
-
-            // Enviar el estado actual del juego al cliente que se une a la sala
-            client.sendEvent("loadGameState", roomGames.get(roomId));
+            System.out.println("Player: " + playerName + " se unió a la sala " + roomId);
+            client.joinRoom(roomId); // Agregar al cliente a la sala
+    
+            Room room = rooms.computeIfAbsent(roomId, k -> new Room()); // Crear la sala si no existe
+    
+            if (room.getStatus() == RoomStatus.EN_JUEGO) {
+                client.sendEvent("error", "No puedes unirte. El juego ya ha comenzado.");
+                return;
+            } else if (room.getStatus() == RoomStatus.FINALIZADO) {
+                client.sendEvent("error", "El juego ha finalizado.");
+                return;
+            }
+    
+            Player player = new Player(null, playerName, roomId, 1000); // Crear un nuevo jugador con un saldo inicial de 1000
+    
+            // Log para imprimir la información del jugador después de ser creado
+            System.out.println("Jugador creado: Nombre=" + playerName + ", RoomId=" + roomId + ", Saldo=" + player.getAmount());
+    
+            if (room.addPlayer(player)) {
+                if (room.getPlayers().size() >= room.getMinPlayers()) {
+                    room.setStatus(RoomStatus.EN_ESPERA);
+                }
+                rooms.put(roomId, room);
+    
+                // Enviar el estado del juego al cliente que se unió
+                client.sendEvent("loadGameState", room.getGame());
+    
+                // Emitir el estado actualizado del juego a todos los clientes en la sala
+                server.getRoomOperations(roomId).sendEvent("updateGameState." + roomId, room.getGame());
+            } else {
+                client.sendEvent("error", "La sala ya está llena o no se puede unir.");
+            }
         };
     }
-
+    
     private DataListener<String> leaveRoomListener() {
         return (client, roomId, ackSender) -> {
             System.out.println("Client left Blackjack room: " + roomId);
-            String eventName = "playerAction." + roomId;
-            client.leaveRoom(eventName);
+            client.leaveRoom(roomId); // Eliminar al cliente de la sala
 
-            // Reducir el contador de conexiones para la sala y eliminar si no hay usuarios
-            int connections = roomConnections.getOrDefault(roomId, 0) - 1;
-            if (connections <= 0) {
-                roomConnections.remove(roomId);
-                roomGames.remove(roomId); // Eliminar el juego de la sala
-                System.out.println("Eliminando juego de la sala " + roomId + " ya que no hay usuarios conectados.");
-            } else {
-                roomConnections.put(roomId, connections);
+            Room room = rooms.get(roomId);
+            if (room != null) {
+                Player player = room.getPlayerByName(client.getHandshakeData().getSingleUrlParam("name"));
+                if (player != null) {
+                    room.removePlayer(player); // Eliminar el jugador de la sala
+                }
+
+                // Si no hay suficientes jugadores, eliminar la sala o actualizar el estado del juego
+                if (room.getPlayers().isEmpty()) {
+                    rooms.remove(roomId);
+                    System.out.println("Eliminando la sala " + roomId + " ya que no hay jugadores conectados.");
+                } else if (room.getPlayers().size() < room.getMinPlayers() && room.getStatus() == RoomStatus.EN_JUEGO) {
+                    room.setStatus(RoomStatus.FINALIZADO);
+                    System.out.println("Cambiando el estado de la sala " + roomId + " a FINALIZADO por falta de jugadores.");
+                    server.getRoomOperations(roomId).sendEvent("updateGameState." + roomId, room.getGame());
+                } else {
+                    server.getRoomOperations(roomId).sendEvent("updateGameState." + roomId, room.getGame());
+                }
             }
         };
-    }
-
-    private void subscribeToGameEvents(String roomId) {
-        String eventName = "playerAction." + roomId;
-
-        // Registrar el evento para manejar las acciones de los jugadores y actualizar el estado del juego
-        server.addEventListener(eventName, PlayerAction.class, (client, action, ackSender) -> {
-            System.out.println("Received player action in " + roomId + ": " + action);
-
-            // Obtener el juego de la sala y aplicar la acción del jugador
-            Game game = roomGames.get(roomId);
-            if (game != null) {
-                game.decideAction(game.getCurrentPlayer());
-
-                // Emitir el estado actualizado del juego a todos los clientes en esta sala
-                server.getRoomOperations(roomId).sendEvent("updateGameState." + roomId, game);
-            }
-        });
     }
 
     private ConnectListener onConnected() {
@@ -85,7 +100,10 @@ public class BlackJackSocketIOConfig {
     }
 
     private DisconnectListener onDisconnected() {
-        return client -> System.out.println("Disconnected!");
+        return client -> {
+            System.out.println("Disconnected!");
+            // Aquí podrías añadir lógica adicional si es necesario, como actualizar roomConnections
+        };
     }
 
     public void start() {

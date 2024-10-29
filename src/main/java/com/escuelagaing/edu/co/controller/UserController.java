@@ -26,14 +26,23 @@ public class UserController {
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody UserDTO userDto) {
         try {
+            System.out.println("Recibida solicitud para crear un nuevo usuario con datos: " + userDto);
+
             User user = new User();
             user.setName(userDto.getName());
             user.setEmail(userDto.getEmail());
             // Mapear otros campos según sea necesario
 
+            System.out.println("Intentando crear el usuario: Nombre=" + user.getName() + ", Email=" + user.getEmail());
+
             User createdUser = userService.createUser(user);
+
+            System.out.println("Usuario creado exitosamente: " + createdUser);
+
             return ResponseEntity.ok(createdUser);
         } catch (RuntimeException e) {
+            System.err.println("Error al crear el usuario: " + e.getMessage());
+            e.printStackTrace(); // Esto imprimirá la traza completa del error en los logs
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
@@ -50,28 +59,39 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody UserDTO userDetails) {
         try {
+            System.out.println("Recibida solicitud para actualizar usuario con ID: " + id);
+            
             // Convertir el DTO a la entidad
             User user = new User();
             user.setName(userDetails.getName());
             user.setEmail(userDetails.getEmail());
             // Mapear otros campos según sea necesario
+
+            System.out.println("Intentando actualizar el usuario con ID: " + id + ", Nombre=" + user.getName() + ", Email=" + user.getEmail());
     
             // Llamar al servicio de actualización
             User updatedUser = userService.updateUser(id, user);
+            System.out.println("Usuario actualizado exitosamente: " + updatedUser);
+
             return ResponseEntity.ok(updatedUser);
         } catch (RuntimeException e) {
+            System.err.println("Error al actualizar el usuario con ID " + id + ": " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.notFound().build();
         }
     }
-    
 
     // Eliminar un usuario
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         try {
+            System.out.println("Recibida solicitud para eliminar usuario con ID: " + id);
             userService.deleteUser(id);
+            System.out.println("Usuario con ID " + id + " eliminado exitosamente.");
             return ResponseEntity.noContent().build(); // Retorna 204 No Content
         } catch (RuntimeException e) {
+            System.err.println("Error al eliminar el usuario con ID " + id + ": " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.notFound().build();
         }
     }
