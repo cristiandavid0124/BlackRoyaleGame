@@ -4,6 +4,8 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
+import com.escuelagaing.edu.co.dto.BetPayload;
+import com.escuelagaing.edu.co.dto.RoomStateDTO;
 import com.escuelagaing.edu.co.model.Player;
 import com.escuelagaing.edu.co.model.Room;
 import com.escuelagaing.edu.co.model.RoomStatus;
@@ -11,10 +13,11 @@ import com.escuelagaing.edu.co.model.User;
 import com.escuelagaing.edu.co.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class BlackJackSocketIOConfig {
@@ -35,17 +38,20 @@ public class BlackJackSocketIOConfig {
         server.addEventListener("joinRoom", String.class, joinRoomListener());
         // Evento para salir de una sala específica
         server.addEventListener("leaveRoom", String.class, leaveRoomListener());
+        // Evento de apuesta
+        server.addEventListener("playerBet", BetPayload.class, playerBetListener());
+
     }
 
     private DataListener<String> joinRoomListener() {
         return (client, roomId, ackSender) -> {
             String playerName = client.getHandshakeData().getSingleUrlParam("name");
-            String playerId = client.getHandshakeData().getSingleUrlParam("id"); // Obtener el id del jugador
+            String playerId = client.getHandshakeData().getSingleUrlParam("id");
     
             System.out.println("Player: " + playerName + " con ID: " + playerId + " se unió a la sala " + roomId);
-            client.joinRoom(roomId); // Agregar al cliente a la sala
+            client.joinRoom(roomId);
     
-            Room room = rooms.computeIfAbsent(roomId, k -> new Room()); // Crear la sala si no existe
+            Room room = rooms.computeIfAbsent(roomId, k -> new Room());
     
             if (room.getStatus() == RoomStatus.EN_JUEGO) {
                 client.sendEvent("error", "No puedes unirte. El juego ya ha comenzado.");
@@ -55,7 +61,6 @@ public class BlackJackSocketIOConfig {
                 return;
             }
     
-            // Buscar el usuario por ID usando UserService
             Optional<User> userOptional = userService.getUserById(playerId);
             if (!userOptional.isPresent()) {
                 client.sendEvent("error", "Usuario no encontrado con ID: " + playerId);
@@ -63,43 +68,21 @@ public class BlackJackSocketIOConfig {
             }
     
             User user = userOptional.get();
+            String playerNickName = user.getNickName();
+            Player player = new Player(user, playerNickName, roomId, 1000);
     
-            // Crear un nuevo jugador usando el usuario encontrado
-            Player player = new Player(user, playerName, roomId, 1000);
-    
-            // Log para imprimir la información del jugador después de ser creado
             System.out.println("Jugador creado: ID=" + playerId + ", Nombre=" + playerName + ", RoomId=" + roomId + ", Saldo=" + player.getAmount());
     
             if (room.addPlayer(player)) {
-                if (room.getPlayers().size() >= room.getMinPlayers()) {
-                    room.setStatus(RoomStatus.EN_ESPERA);
-                }
                 rooms.put(roomId, room);
-    
-                // Enviar la lista de jugadores actuales en lugar de gameState si game es null
-                if (room.getGame() == null) {
-                    client.sendEvent("loadGameState", room.getPlayers());
-    
-                    // Print detallado de la lista de jugadores
-                    System.out.println("Enviando lista de jugadores en lugar de gameState, ya que el juego no ha iniciado.");
-                    System.out.println("Lista de jugadores en la sala " + roomId + ":");
-                    for (Player p : room.getPlayers()) {
-                        System.out.println("Jugador - ID: " + p.getId() + ", Nombre: " + p.getName() + ", Saldo: " + p.getAmount());
-                    }
-                } else {
-                    client.sendEvent("loadGameState", room.getGame());
-                    System.out.println("Enviando gameState completo.");
-                }
-                
-                // Emitir el estado actualizado de la sala a todos los clientes
-                server.getRoomOperations(roomId).sendEvent("updateGameState." + roomId, room.getPlayers());
+                sendRoomUpdate(roomId); // Asegúrate de que esta línea se ejecuta
+                System.out.println("Enviando actualización de la sala después de que el jugador se una");
             } else {
                 client.sendEvent("error", "La sala ya está llena o no se puede unir.");
             }
         };
     }
     
-
     private DataListener<String> leaveRoomListener() {
         return (client, roomId, ackSender) -> {
             System.out.println("Client left Blackjack room: " + roomId);
@@ -112,19 +95,67 @@ public class BlackJackSocketIOConfig {
                     room.removePlayer(player); // Eliminar el jugador de la sala
                 }
 
-                // Si no hay suficientes jugadores, eliminar la sala o actualizar el estado del juego
+                
                 if (room.getPlayers().isEmpty()) {
                     rooms.remove(roomId);
                     System.out.println("Eliminando la sala " + roomId + " ya que no hay jugadores conectados.");
                 } else if (room.getPlayers().size() < room.getMinPlayers() && room.getStatus() == RoomStatus.EN_JUEGO) {
                     room.setStatus(RoomStatus.FINALIZADO);
-                    System.out.println("Cambiando el estado de la sala " + roomId + " a FINALIZADO por falta de jugadores.");
-                    server.getRoomOperations(roomId).sendEvent("updateGameState." + roomId, room.getGame());
-                } else {
-                    server.getRoomOperations(roomId).sendEvent("updateGameState." + roomId, room.getGame());
                 }
+                sendRoomUpdate(roomId); // Enviar la actualización del estado de la sala
             }
         };
+    }
+
+    private DataListener<BetPayload> playerBetListener() {
+        return (client, data, ackSender) -> {
+            // Extrae `roomId` y `fichas` del objeto `BetPayload`
+            String roomId = data.getRoomId();
+            List<String> chipColors = data.getFichas();
+    
+            System.out.println("Evento playerBet recibido con las fichas: " + chipColors);
+            System.out.println("roomId recibido: " + roomId);
+    
+            String playerId = client.getHandshakeData().getSingleUrlParam("id");
+    
+            Room room = rooms.get(roomId);
+            if (room != null && room.getStatus() == RoomStatus.EN_APUESTAS) {
+                Player player = room.getPlayerById(playerId);
+                if (player != null) {
+                    if (player.placeBet(chipColors)) {
+                        System.out.println("Apuesta realizada por " + player.getName() + ": " + player.getBet());
+                        System.out.println("Saldo después de apuesta: " + player.getAmount());
+                        sendRoomUpdate(roomId);
+                        
+                       
+                    } else {
+                        client.sendEvent("betError", "Saldo insuficiente o color de ficha no válido para esta apuesta.");
+                    }
+                } else {
+                    client.sendEvent("betError", "Jugador no encontrado en la sala.");
+                }
+            } else {
+                client.sendEvent("betError", "No se puede realizar la apuesta en este momento.");
+            }
+        };
+    }
+    public void sendRoomUpdate(String roomId) {
+        Room room = rooms.get(roomId);
+        if (room != null) {
+            RoomStateDTO roomState = room.buildRoomState(); // Construir el estado de la sala
+            
+            // Convertir roomState a JSON y hacer un print
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                String jsonString = objectMapper.writeValueAsString(roomState);
+                System.out.println("JSON enviado a roomUpdate: " + jsonString);
+            } catch (Exception e) {
+                System.err.println("Error al convertir RoomStateDTO a JSON: " + e.getMessage());
+            }
+    
+            // Enviar la actualización de la sala a través del socket
+            server.getRoomOperations(roomId).sendEvent("roomUpdate", roomState);
+        }
     }
 
     private ConnectListener onConnected() {

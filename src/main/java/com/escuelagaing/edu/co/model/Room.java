@@ -1,10 +1,18 @@
 package com.escuelagaing.edu.co.model;
 
-
+import com.escuelagaing.edu.co.dto.RoomStateDTO;
 import java.util.ArrayList;
 import java.util.List;
+
+
+
+import org.apache.el.stream.Optional;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+
+
+import java.util.concurrent.*;
 @Document(collection = "Room") 
 
 public class Room {
@@ -14,8 +22,9 @@ public class Room {
     private Game game;
     private RoomStatus status;  
     private final int maxPlayers = 5;
-    private final int minPlayers = 3;
-
+    private final int minPlayers = 2;
+    private final int MAX_BET_TIME = 60; // Tiempo máximo para la fase de apuestas en segundos
+    private List<RoomObserver> observers = new ArrayList<>(); // Lista de observadores
     // Constructor
     public Room() {
         this.players = new ArrayList<>();
@@ -29,6 +38,16 @@ public class Room {
             }
         }
         return null; 
+    }
+
+
+
+
+
+    public RoomStateDTO buildRoomState() {
+        List<Player> winners = (game != null) ? game.calculateWinners() : List.of();
+        List<Card> dealerHand = (game != null) ? game.getDealer().getHand() : List.of();
+        return new RoomStateDTO(players, winners, dealerHand);
     }
 
     public String getRoomId() {  
@@ -64,13 +83,23 @@ public class Room {
     }
 
   
-    // Método para agregar un jugador a la sala
     public boolean addPlayer(Player player) {
         if (players.size() < maxPlayers) {
             players.add(player);
-            if (players.size() >= minPlayers) {
-                 startBetting(); 
+
+            // Cambia el estado de la sala a `EN_APUESTAS` si el mínimo de jugadores está listo
+            if (players.size() == minPlayers) {
+                System.out.println("Iniciando proceso de apuestas. Hay suficientes jugadores en la sala.");
+                status = RoomStatus.EN_APUESTAS;
+                startBetting();
             }
+
+            // Cambia el estado de la sala si alcanza el máximo de jugadores
+            if (players.size() == maxPlayers) {
+                System.out.println("La sala está llena.");
+                status = RoomStatus.EN_ESPERA; // Indica que la sala ya tiene el máximo de jugadores
+            }
+
             return true;
         } else {
             System.out.println("La sala ya está llena.");
@@ -103,36 +132,41 @@ public class Room {
         }
     }
 
-    // Método para iniciar el juego
     public void startGame() {
-        if (players.size() >= minPlayers && players.size() <= maxPlayers) {
-            this.game = new Game(players,id);  // Crear una nueva instancia de Game con los jugadores de la sala
-            this.status = RoomStatus.EN_JUEGO;  // Cambiar el estado de la sala a "EN_JUEGO"
-            game.startGame();  // Iniciar el juego
-        } else {
-            System.out.println("No hay suficientes jugadores para iniciar el juego.");
+        if (players.size() >= minPlayers) {
+            this.game = new Game(players, id);
+            this.status = RoomStatus.EN_JUEGO;
+            game.startGame();
         }
     }
 
-    // Método para finalizar el juego
     public void endGame() {
         if (game != null) {
-            game.endGame();  // Finalizar el juego
-            this.status = RoomStatus.FINALIZADO;  // Cambiar el estado de la sala a "FINALIZADO"
-        } else {
-            System.out.println("El juego no ha comenzado.");
+            game.endGame();
+            this.status = RoomStatus.FINALIZADO;
         }
     }
-
 
     public void startBetting() {
-        if (game == null) {
-            game = new Game(players, id);  // Crear una nueva instancia de Game
-        }
-        game.startBetting(); // Iniciar el proceso de apuestas
+        this.status = RoomStatus.EN_APUESTAS;
+        System.out.println("Fase de apuestas iniciada.");
+    
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.schedule(() -> {
+            endBetting();
+            scheduler.shutdown();
+        }, MAX_BET_TIME, TimeUnit.SECONDS);
     }
 
-    // Método para reiniciar la sala
+
+
+    private void endBetting() {
+        System.out.println("Fase de apuestas finalizada.");
+        this.status = RoomStatus.EN_JUEGO;
+        startGame(); // Iniciar el juego después de la fase de apuestas
+    }
+
+   
     public void resetRoom() {
         if (game != null) {
             game.resetGame();  

@@ -14,6 +14,7 @@ public class Player {
     private boolean finishTurn;
     private PlayerAction estado;
     private ArrayList<Chip> availableChips;
+    private String NickName;
 
 
     public Player(User user, String name, String roomId, double amount) {
@@ -26,6 +27,18 @@ public class Player {
         this.finishTurn = false;
         this.estado = null;  
         this.availableChips = new ArrayList<>(); // Inicia como una lista vacía
+        this.NickName = null;
+
+    }
+
+
+
+    public void setNickName(String name){
+        this.NickName = name;
+
+    }
+    public String getNickName(){
+        return this.NickName;
     }
 
     public String getId(){
@@ -167,7 +180,34 @@ public class Player {
         hand.clear(); // Limpia las cartas
     }
 
-   
+    public boolean placeBet(List<String> chipColors) {
+        List<Chip> chips = new ArrayList<>();
+
+        // Convertir cada color en la lista de strings a un objeto Chip
+        for (String color : chipColors) {
+            try {
+                chips.add(Chip.fromColor(color));
+            } catch (IllegalArgumentException e) {
+                System.out.println("Color de ficha no válido: " + color);
+                return false;
+            }
+        }
+
+        double totalBetValue = chips.stream().mapToDouble(Chip::getValue).sum();
+
+        if (totalBetValue > amount) {
+            System.out.println("Saldo insuficiente para realizar esta apuesta.");
+            return false;
+        }
+
+        this.amount -= totalBetValue;
+        this.bet += totalBetValue;
+        this.availableChips.clear();
+        this.availableChips.addAll(chips);
+
+        System.out.println("Apuesta realizada: " + totalBetValue + ". Saldo restante: " + this.amount);
+        return true;
+    }
 
 
      public boolean isFinishTurn() {
