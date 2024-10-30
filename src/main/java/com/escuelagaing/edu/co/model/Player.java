@@ -15,6 +15,7 @@ public class Player {
     private PlayerAction estado;
     private ArrayList<Chip> availableChips;
     private String NickName;
+    private boolean hasBet = false;
 
 
     public Player(User user, String name, String roomId, double amount) {
@@ -29,6 +30,13 @@ public class Player {
         this.availableChips = new ArrayList<>(); // Inicia como una lista vacía
         this.NickName = null;
 
+    }
+
+    public boolean hasCompletedBet(){
+        return hasBet;
+    }
+    public void setHasCompletedBet(boolean state) {
+        this.hasBet = state;
     }
 
 
@@ -204,7 +212,7 @@ public class Player {
         this.bet += totalBetValue;
         this.availableChips.clear();
         this.availableChips.addAll(chips);
-
+        this.hasBet = true;
         System.out.println("Apuesta realizada: " + totalBetValue + ". Saldo restante: " + this.amount);
         return true;
     }

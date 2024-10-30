@@ -13,13 +13,13 @@ import java.util.Optional;
 public class RoomService {
 
     private final RoomRepository roomRepository;
-    private final RoomServiceObserver roomServiceObserver;
+   
 
     // Constructor injection
     @Autowired
-    public RoomService(RoomRepository roomRepository, RoomServiceObserver roomServiceObserver) {
+    public RoomService(RoomRepository roomRepository ) {
         this.roomRepository = roomRepository;
-        this.roomServiceObserver = roomServiceObserver;
+    
     }
 
     private String generateUniqueRoomId() {
@@ -93,4 +93,3 @@ public class RoomService {
         }
     }
 }
-

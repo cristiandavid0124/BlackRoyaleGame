@@ -75,7 +75,7 @@ public class BlackJackSocketIOConfig {
     
             if (room.addPlayer(player)) {
                 rooms.put(roomId, room);
-                sendRoomUpdate(roomId); // Asegúrate de que esta línea se ejecuta
+                sendRoomUpdate(roomId); 
                 System.out.println("Enviando actualización de la sala después de que el jugador se una");
             } else {
                 client.sendEvent("error", "La sala ya está llena o no se puede unir.");
@@ -106,28 +106,31 @@ public class BlackJackSocketIOConfig {
             }
         };
     }
-
     private DataListener<BetPayload> playerBetListener() {
         return (client, data, ackSender) -> {
-            // Extrae `roomId` y `fichas` del objeto `BetPayload`
             String roomId = data.getRoomId();
             List<String> chipColors = data.getFichas();
-    
+        
             System.out.println("Evento playerBet recibido con las fichas: " + chipColors);
             System.out.println("roomId recibido: " + roomId);
-    
+        
             String playerId = client.getHandshakeData().getSingleUrlParam("id");
-    
+        
             Room room = rooms.get(roomId);
             if (room != null && room.getStatus() == RoomStatus.EN_APUESTAS) {
                 Player player = room.getPlayerById(playerId);
                 if (player != null) {
                     if (player.placeBet(chipColors)) {
+                        player.setHasCompletedBet(true);
                         System.out.println("Apuesta realizada por " + player.getName() + ": " + player.getBet());
                         System.out.println("Saldo después de apuesta: " + player.getAmount());
                         sendRoomUpdate(roomId);
+                        boolean allPlayersCompletedBet = room.getPlayers().stream().allMatch(Player::hasCompletedBet);
+                        if (allPlayersCompletedBet) {
+                            room.endBetting();
+                            sendRoomUpdate(roomId); 
+                        }
                         
-                       
                     } else {
                         client.sendEvent("betError", "Saldo insuficiente o color de ficha no válido para esta apuesta.");
                     }

@@ -24,7 +24,7 @@ public class Room {
     private final int maxPlayers = 5;
     private final int minPlayers = 2;
     private final int MAX_BET_TIME = 60; // Tiempo máximo para la fase de apuestas en segundos
-    private List<RoomObserver> observers = new ArrayList<>(); // Lista de observadores
+   
     // Constructor
     public Room() {
         this.players = new ArrayList<>();
@@ -40,6 +40,9 @@ public class Room {
         return null; 
     }
 
+
+
+    
 
 
 
@@ -149,18 +152,11 @@ public class Room {
 
     public void startBetting() {
         this.status = RoomStatus.EN_APUESTAS;
-        System.out.println("Fase de apuestas iniciada.");
-    
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-        scheduler.schedule(() -> {
-            endBetting();
-            scheduler.shutdown();
-        }, MAX_BET_TIME, TimeUnit.SECONDS);
     }
+    
 
 
-
-    private void endBetting() {
+    public void endBetting() {
         System.out.println("Fase de apuestas finalizada.");
         this.status = RoomStatus.EN_JUEGO;
         startGame(); // Iniciar el juego después de la fase de apuestas
