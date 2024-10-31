@@ -40,7 +40,7 @@ class GameTest {
         
 
         // Realizar la fase de apuestas
-        game.startBetting();
+
      
         
 
@@ -62,8 +62,7 @@ class GameTest {
         game.startGame();
         
         // Simular apuestas
-        game.startBetting();
-        
+
         // Comenzar los turnos de los jugadores
         game.startPlayerTurns();
 
@@ -85,8 +84,7 @@ class GameTest {
         game.startGame();
         
         // Simular apuestas
-        game.startBetting();
-        
+    
         // Comenzar los turnos de los jugadores
         game.startPlayerTurns();
         

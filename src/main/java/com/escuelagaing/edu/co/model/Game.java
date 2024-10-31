@@ -22,7 +22,7 @@ public class Game {
     private static final int MAX_BET_TIME = 60;  // 60 segundos para apostar
     private static final int MAX_DECISION_TIME = 40;  // 40 segundos para decisiones
     private static final String SCORE_TEXT = " - Puntuación: ";  // Constant for repeated string literal
-
+   
     @Transient
     private Deck deck;
 
@@ -39,38 +39,11 @@ public class Game {
         this.barrier = new CyclicBarrier(players.size() + 1); 
     }
 
-    // FASE 2: Fase de Apuestas
-    public void startBetting() {
-        ExecutorService executor = Executors.newFixedThreadPool(players.size());
-        for (Player player : players) {
-            executor.submit(() -> {
-                try {
-                    List<Chip> chipsToBet = player.getChips();
-                    playerBet(player, chipsToBet);
-                } catch (Exception e) {
-                    logger.error("Error al realizar la apuesta para el jugador: " + player.getName(), e);
-                }
-            });
-        }
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(MAX_BET_TIME, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-                logger.info("Se terminó el tiempo para apostar.");
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            logger.error("La espera fue interrumpida.", e);
-            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
-        }
-    }
 
+
+   
     public Dealer getDealer() {
         return dealer;
-    }
-
-    private synchronized void playerBet(Player player, List<Chip> chipsToBet) {
-        player.setChips(chipsToBet);
     }
 
     // FASE 3: Fase de Reparto de Cartas Iniciales

@@ -54,7 +54,7 @@ public class BlackjackConsoleGame {
                 System.out.println("Fondos insuficientes. Apuesta rechazada.");
             }
         }
-        game.startBetting(); // Inicia el proceso de apuestas en el objeto Game
+    
     }
 
     private void playTurn(Player player) {

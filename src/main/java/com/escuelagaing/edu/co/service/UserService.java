@@ -38,7 +38,6 @@ public class UserService {
         return userRepository.findById(id)
                 .map(user -> {
                     user.setNickName(userDetails.getNickName());
-                    user.setName(userDetails.getName());
                     // Actualizar otros campos según sea necesario
                     return userRepository.save(user); // Guardar los cambios en la base de datos
                 })

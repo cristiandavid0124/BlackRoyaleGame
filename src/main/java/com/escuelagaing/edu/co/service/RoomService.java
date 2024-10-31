@@ -13,11 +13,13 @@ import java.util.Optional;
 public class RoomService {
 
     private final RoomRepository roomRepository;
+   
 
     // Constructor injection
     @Autowired
-    public RoomService(RoomRepository roomRepository) {
+    public RoomService(RoomRepository roomRepository ) {
         this.roomRepository = roomRepository;
+    
     }
 
     private String generateUniqueRoomId() {
@@ -28,6 +30,7 @@ public class RoomService {
         Room room = new Room();
         room.setId(generateUniqueRoomId());
         return roomRepository.save(room); // Guardar en MongoDB
+       
     }
 
     public Room getRoom(String roomId) {
@@ -64,7 +67,6 @@ public class RoomService {
     public void startGame(Room room) {
         Game game = new Game(room.getPlayers(), room.getRoomId());
         room.setGame(game);
-        game.startBetting();
         game.startGame();
         roomRepository.save(room); // Guardar el estado actualizado en MongoDB
     }
@@ -91,4 +93,3 @@ public class RoomService {
         }
     }
 }
-
