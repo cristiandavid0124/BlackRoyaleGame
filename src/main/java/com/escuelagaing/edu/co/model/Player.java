@@ -16,6 +16,7 @@ public class Player {
     private ArrayList<Chip> availableChips;
     private String NickName;
     private boolean hasBet = false;
+    private boolean isTurn;
 
 
     public Player(User user, String name, String roomId, double amount) {
@@ -29,6 +30,7 @@ public class Player {
         this.estado = null;  
         this.availableChips = new ArrayList<>(); // Inicia como una lista vacía
         this.NickName = null;
+        this.isTurn = false;
 
     }
 
@@ -217,7 +219,13 @@ public class Player {
         return true;
     }
 
+    public boolean getInTurn(){
+        return isTurn;
+    }
+    public void setInTurn(boolean state){
+        isTurn = state;
 
+    }
      public boolean isFinishTurn() {
         return finishTurn;
     }

@@ -3,21 +3,21 @@ package com.escuelagaing.edu.co.service;
 import com.escuelagaing.edu.co.model.Game;
 import com.escuelagaing.edu.co.model.Player;
 import com.escuelagaing.edu.co.model.Room;
-import com.escuelagaing.edu.co.repository.RoomRepository;
+import com.escuelagaing.edu.co.repository.BlackJackRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 @Service
-public class RoomService {
+public class BlackJackService {
 
-    private final RoomRepository roomRepository;
+    private final BlackJackRepository roomRepository;
    
 
     // Constructor injection
     @Autowired
-    public RoomService(RoomRepository roomRepository ) {
+    public BlackJackService(BlackJackRepository roomRepository ) {
         this.roomRepository = roomRepository;
     
     }
@@ -71,13 +71,7 @@ public class RoomService {
         roomRepository.save(room); // Guardar el estado actualizado en MongoDB
     }
 
-    public void processAction(Player player, String action) {
-        Room room = getRoom(player.getRoomId());
-        if (room != null && room.getGame() != null) {
-            room.getGame().decideAction(player);
-            roomRepository.save(room); // Guardar el estado actualizado en MongoDB
-        }
-    }
+  
 
     public void placeBet(Player player, Double betAmount) {
         Room room = getRoom(player.getRoomId());

@@ -13,14 +13,11 @@ public class Game {
 
     private static final Logger logger = LoggerFactory.getLogger(Game.class);
 
-    private String id;
     private List<Player> players;
     private Dealer dealer;
     private boolean isActive;
     private List<Player> winners;
     private int currentPlayerIndex;
-    private static final int MAX_BET_TIME = 60;  // 60 segundos para apostar
-    private static final int MAX_DECISION_TIME = 40;  // 40 segundos para decisiones
     private static final String SCORE_TEXT = " - Puntuación: ";  // Constant for repeated string literal
    
     @Transient
@@ -30,7 +27,6 @@ public class Game {
     private CyclicBarrier barrier;
 
     public Game(List<Player> players, String roomId) {
-        this.id = ObjectId.get().toHexString();
         this.players = players;
         this.winners = new ArrayList<>();
         this.dealer = new Dealer(roomId);
@@ -69,76 +65,89 @@ public class Game {
         dealer.addCard(deck.drawCard());
         dealer.addCard(deck.drawCard());
         logger.info("Dealer - Cartas: " + dealer.getHand() + SCORE_TEXT + dealer.calculateScore());
+        startPhaseTurns();
     }
 
-    // FASE 4: Fase de Decisiones de Jugadores
-    public void startPlayerTurns() {
-        ExecutorService executor = Executors.newFixedThreadPool(players.size());
-        for (Player player : players) {
-            executor.submit(() -> startPlayerTurn(player));
-        }
-        executor.shutdown();
+ 
+public void startPhaseTurns() {
+    if (!players.isEmpty()) {
+        Player firstPlayer = players.get(0);
+        firstPlayer.setInTurn(true);
+        
+        logger.info("Iniciando turno de " + firstPlayer.getNickName());
+    }
+}
 
-        try {
-            barrier.await(); // Esperar a que todos los jugadores terminen
-        } catch (InterruptedException | BrokenBarrierException e) {
-            logger.error("Error en la barrera durante los turnos de los jugadores.", e);
-            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
-        }
-
-        try {
-            if (!executor.awaitTermination(MAX_DECISION_TIME, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-                logger.info("Tiempo de espera agotado para los turnos de los jugadores.");
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            logger.error("La espera fue interrumpida.", e);
-            Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
-        }
+public void startPlayerTurn(Player player, String actionString) {
+    PlayerAction action;
+    try {
+        action = PlayerAction.valueOf(actionString.toUpperCase()); 
+    } catch (IllegalArgumentException e) {
+        logger.error("Acción no válida recibida: " + actionString, e);
+        return; 
     }
 
-    private void startPlayerTurn(Player player) {
-        try {
-            decideAction(player);  // Decisión de acción del jugador
-        } catch (Exception e) {
-            logger.error("Error en el turno del jugador: " + player.getName(), e);
-        } finally {
+    logger.info("Turno de: " + player.getNickName() + " con acción: " + action);
+    try {
+        decideAction(player, action); // Aplica la acción recibida directamente
+    } catch (Exception e) {
+        logger.error("Error en el turno del jugador: " + player.getName(), e);
+    } finally {
+        player.setfinishTurn(true);
+        player.setInTurn(false);
+        
+        // Cambia al siguiente jugador en turno, si existe
+        int nextPlayerIndex = players.indexOf(player) + 1;
+        if (nextPlayerIndex < players.size()) {
+            Player nextPlayer = players.get(nextPlayerIndex);
+            nextPlayer.setInTurn(true);
+        } else {
+            dealerTurn();
+        }
+    }
+}
+
+
+public void decideAction(Player player, PlayerAction action) {
+    switch (action) {
+        case HIT:
+            player.addCard(deck.drawCard());
+            break;
+        case STAND:
             player.setfinishTurn(true);
-            try {
-                barrier.await(); // Esperar en la barrera
-            } catch (InterruptedException | BrokenBarrierException e) {
-                logger.error("Error al esperar en la barrera para " + player.getName(), e);
-                Thread.currentThread().interrupt(); // Re-interrumpe el hilo actual
-            }
-        }
+            player.setInTurn(false);
+            break;
+        case DOUBLE:
+            double additionalBet = player.getBet(); 
+            player.placeBet(additionalBet); 
+            player.addCard(deck.drawCard());
+            List<Chip> currentChips = player.getChips();
+            List<Chip> doubledChips = new ArrayList<>(currentChips);
+            doubledChips.addAll(currentChips);  
+            player.setChips(doubledChips); 
+            
+            player.setfinishTurn(true);
+            player.setInTurn(false);
+            break;
+        default:
+            player.setfinishTurn(true);
+            player.setInTurn(false);
     }
+}
+    
+// FASE 5: Turno del Dealer
 
-    public void decideAction(Player player) {
-        PlayerAction action = player.getEstado();
-        switch (action) {
-            case HIT:
-                player.addCard(deck.drawCard());
-                break;
-            case STAND:
-                player.setfinishTurn(true);
-                break;
-                case DOUBLE:
-                double additionalBet = player.getBet(); // Tomar solo la cantidad inicial
-                player.placeBet(additionalBet); // Apostar adicionalmente la cantidad inicial
-                player.addCard(deck.drawCard());
-                player.setfinishTurn(true);
-                break;
-            default:
-                player.setfinishTurn(true);
-        }
-    }
 
-    // FASE 5: Turno del Dealer
+
+
     public void dealerTurn() {
         while (dealer.calculateScore() < 17) {
             dealer.addCard(deck.drawCard());
         }
+    
+        endGame();
+
+
     }
 
     public void resetGame() {
@@ -172,12 +181,12 @@ public class Game {
     public List<Player> calculateWinners() {
         int dealerScore = dealer.calculateScore();
         int highestScore = 0;
-        
-        // Limpiar la lista de ganadores al inicio para evitar conflictos
+    
+       
         winners.clear();
     
         logger.info("Puntuación del Dealer: " + dealerScore);
-        
+    
         for (Player player : players) {
             int playerScore = player.calculateScore();
             logger.info("Jugador: " + player.getName() + " - Cartas: " + player.getHand() + SCORE_TEXT + playerScore);
@@ -190,7 +199,7 @@ public class Game {
             if (playerScore > dealerScore || dealerScore > 21) {
                 if (playerScore > highestScore) {
                     highestScore = playerScore;
-                    winners.clear(); // Actualizar la lista de ganadores con un nuevo puntaje más alto
+                    winners.clear(); 
                     winners.add(player);
                 } else if (playerScore == highestScore) {
                     winners.add(player);
@@ -198,9 +207,14 @@ public class Game {
             }
         }
     
+        if (winners.isEmpty() && dealerScore <= 21) {
+            logger.info("El Dealer gana con una puntuación de: " + dealerScore);
+            winners.add(dealer); 
+        }
+
         return winners;
     }
-
+    
     public Card dealCard() {
         Player currentPlayer = getCurrentPlayer();
         Card newCard = this.deck.drawCard();

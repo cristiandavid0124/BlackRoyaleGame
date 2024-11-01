@@ -6,13 +6,12 @@ import java.util.List;
 
 
 
-import org.apache.el.stream.Optional;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 
 
-import java.util.concurrent.*;
+
 @Document(collection = "Room") 
 
 public class Room {
@@ -23,7 +22,7 @@ public class Room {
     private RoomStatus status;  
     private final int maxPlayers = 5;
     private final int minPlayers = 2;
-    private final int MAX_BET_TIME = 60; // Tiempo máximo para la fase de apuestas en segundos
+    private final int MAX_BET_TIME = 60; 
    
     // Constructor
     public Room() {
@@ -42,13 +41,9 @@ public class Room {
 
 
 
-    
-
-
-
 
     public RoomStateDTO buildRoomState() {
-        List<Player> winners = (game != null) ? game.calculateWinners() : List.of();
+        List<Player> winners = (game != null && !game.isActive()) ? game.calculateWinners() : List.of();
         List<Card> dealerHand = (game != null) ? game.getDealer().getHand() : List.of();
         return new RoomStateDTO(players, winners, dealerHand);
     }
@@ -86,23 +81,21 @@ public class Room {
     }
 
   
-    public boolean addPlayer(Player player) {
+    public  boolean addPlayer(Player player) {
         if (players.size() < maxPlayers) {
             players.add(player);
-
-            // Cambia el estado de la sala a `EN_APUESTAS` si el mínimo de jugadores está listo
+    
             if (players.size() == minPlayers) {
                 System.out.println("Iniciando proceso de apuestas. Hay suficientes jugadores en la sala.");
                 status = RoomStatus.EN_APUESTAS;
                 startBetting();
             }
-
-            // Cambia el estado de la sala si alcanza el máximo de jugadores
+    
             if (players.size() == maxPlayers) {
                 System.out.println("La sala está llena.");
-                status = RoomStatus.EN_ESPERA; // Indica que la sala ya tiene el máximo de jugadores
+                status = RoomStatus.EN_ESPERA;
             }
-
+    
             return true;
         } else {
             System.out.println("La sala ya está llena.");
