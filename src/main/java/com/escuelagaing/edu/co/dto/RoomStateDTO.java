@@ -22,7 +22,7 @@ public class RoomStateDTO {
             if (player instanceof Dealer) {
                 return "Dealer"; // Usa "Dealer" si el ganador es el dealer
             } else {
-                return player.getName();
+                return player.getUser().getNickName();
             }
         }).collect(Collectors.toList())
         : List.of();
