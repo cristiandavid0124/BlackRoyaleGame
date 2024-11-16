@@ -6,6 +6,7 @@ import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
 import com.escuelagaing.edu.co.dto.BetPayload;
 import com.escuelagaing.edu.co.dto.PlayerActionPayload;
+import com.escuelagaing.edu.co.dto.RestartGamePayload;
 import com.escuelagaing.edu.co.dto.RoomStateDTO;
 import com.escuelagaing.edu.co.model.Game;
 import com.escuelagaing.edu.co.model.Player;
@@ -47,7 +48,9 @@ public class BlackJackSocketIOConfig {
 
         server.addEventListener("playerAction", PlayerActionPayload.class, playerActionListener());
 
-        
+        server.addEventListener("restartGame", RestartGamePayload.class, restartGameListener());
+
+
     }
 
     private DataListener<String> joinRoomListener() {
@@ -149,10 +152,29 @@ public class BlackJackSocketIOConfig {
             }
         };
     }
+
+
+    
+    private DataListener<RestartGamePayload> restartGameListener() {
+        return (client, data, ackSender) -> {
+            String roomId = data.getRoomId();
+            System.out.println("Evento restartGame recibido en la sala " + roomId);
+
+            Room room = rooms.get(roomId);
+            if (room != null) {
+                room.resetRoom(); // Reset the room state
+                room.setStatus(RoomStatus.EN_ESPERA); // Set to waiting status
+                sendRoomUpdate(roomId); // Notify clients about the reset
+            } else {
+                System.err.println("No se encontró la sala con ID: " + roomId);
+                client.sendEvent("restartError", "Sala no encontrada o inválida.");
+            }
+        };
+    }
     public void sendRoomUpdate(String roomId) {
         Room room = rooms.get(roomId);
         if (room != null) {
-            RoomStateDTO roomState = room.buildRoomState(); // Construir el estado de la sala
+            RoomStateDTO roomState = room.buildRoomState(); 
             
             try {
                 ObjectMapper objectMapper = new ObjectMapper();

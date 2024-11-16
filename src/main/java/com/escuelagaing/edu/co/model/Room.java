@@ -117,7 +117,7 @@ public class Room {
     public boolean removePlayer(Player player) {
         if (players.contains(player)) {
             players.remove(player);
-            // Si se elimina un jugador y ya no hay suficientes, finalizar el juego si está en progreso
+            
             if (players.size() < minPlayers && status == RoomStatus.EN_JUEGO) {
                 endGame();
             }
@@ -159,9 +159,10 @@ public class Room {
     public void resetRoom() {
         if (game != null) {
             game.resetGame();  
+            players.clear(); 
+            game = new Game(players, id);
         }
-        this.status = RoomStatus.EN_ESPERA;  // Cambiar el estado a "EN_ESPERA"
-        players.clear();  // Limpiar los jugadores de la sala
+        this.status = RoomStatus.EN_ESPERA;
     }
 
     // Método para saber si la sala está llena

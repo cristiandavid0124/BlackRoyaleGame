@@ -2,11 +2,9 @@ package com.escuelagaing.edu.co.dto;
 
 import com.escuelagaing.edu.co.model.Card;
 import com.escuelagaing.edu.co.model.Player;
-import com.escuelagaing.edu.co.model.Chip;
 import com.escuelagaing.edu.co.model.Dealer;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class RoomStateDTO {
@@ -20,7 +18,7 @@ public class RoomStateDTO {
     this.winners = (winners != null) 
         ? winners.stream().map(player -> {
             if (player instanceof Dealer) {
-                return "Dealer"; // Usa "Dealer" si el ganador es el dealer
+                return "Dealer"; 
             } else {
                 return player.getUser().getNickName();
             }

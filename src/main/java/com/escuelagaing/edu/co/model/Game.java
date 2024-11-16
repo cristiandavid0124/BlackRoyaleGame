@@ -89,7 +89,7 @@ public void startPlayerTurn(Player player, String actionString) {
 
     logger.info("Turno de: " + player.getNickName() + " con acción: " + action);
     try {
-        decideAction(player, action); // Aplica la acción recibida directamente
+        decideAction(player, action); 
     } catch (Exception e) {
         logger.error("Error en el turno del jugador: " + player.getName(), e);
     } finally {
@@ -135,7 +135,6 @@ public void decideAction(Player player, PlayerAction action) {
     }
 }
     
-// FASE 5: Turno del Dealer
 
 
 

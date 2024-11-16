@@ -4,7 +4,6 @@ public class PlayerActionPayload {
     private String roomId;
     private String type;
 
-    // Getters y Setters
     public String getRoomId() {
         return roomId;
     }
