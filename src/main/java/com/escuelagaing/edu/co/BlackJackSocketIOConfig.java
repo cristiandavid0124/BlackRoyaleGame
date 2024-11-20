@@ -255,6 +255,10 @@ private DisconnectListener onDisconnected() {
             if (player != null) {
                 player.setDisconnected(true);
                 System.out.println("Player " + player.getId()+ " marked as disconnected.");
+                if (room.getStatus() == RoomStatus.EN_APUESTAS) {
+                    System.out.println("Eliminando jugador desconectado durante la fase de apuestas: " + playerId);
+                    room.removePlayer(player);
+                }
 
                 if (room.getStatus() == RoomStatus.EN_JUEGO && player.getInTurn()) {
                     System.out.println("Player was in turn. Passing to next player.");

@@ -204,6 +204,17 @@ public void decideAction(Player player, PlayerAction action) {
             }
         }
     }
+
+    public void deletePlayer(String playerId) {
+        for (Player player : players) {
+            if (player.getId().equals(playerId)) {
+                players.remove(player); // Elimina al jugador encontrado
+                return; 
+            }
+        }
+    }
+    
+
     
     public List<Player> calculateWinners() {
         int dealerScore = dealer.calculateScore();
@@ -233,15 +244,14 @@ public void decideAction(Player player, PlayerAction action) {
                 }
             }
         }
-    
-        if (winners.isEmpty() && dealerScore <= 21) {
+        
+        if (winners.isEmpty()) {
             logger.info("El Dealer gana con una puntuación de: " + dealerScore);
             winners.add(dealer); 
         }
 
         return winners;
     }
-    
     public Card dealCard() {
         Player currentPlayer = getCurrentPlayer();
         Card newCard = this.deck.drawCard();

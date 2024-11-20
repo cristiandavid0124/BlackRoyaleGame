@@ -39,9 +39,9 @@ public class Room {
     public Room() {
         this.players = Collections.synchronizedList(new ArrayList<>());
 
-        this.status = RoomStatus.EN_ESPERA;  // Estado inicial con enum
+        this.status = RoomStatus.EN_ESPERA;  
     }
-     // Método para obtener un jugador por ID
+
     public Player getPlayer(String playerId) {
         for (Player player : players) {
             if (player.getId().equals(playerId)) {
@@ -114,14 +114,10 @@ public class Room {
         return null; 
     }
 
-    // Método para eliminar un jugador de la sala
     public synchronized boolean removePlayer(Player player) {
         if (players.contains(player)) {
             players.remove(player);
-            if (players.size() < minPlayers && status == RoomStatus.EN_JUEGO) {
-                endGame();
-            }
-            return true;
+            game.deletePlayer(player.getId());
         }
         return false;
     }
