@@ -1,5 +1,4 @@
 package com.escuelagaing.edu.co;
-
 import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
@@ -13,6 +12,7 @@ import com.escuelagaing.edu.co.model.Player;
 import com.escuelagaing.edu.co.model.Room;
 import com.escuelagaing.edu.co.model.RoomStatus;
 import com.escuelagaing.edu.co.model.User;
+import com.escuelagaing.edu.co.service.RoomService;
 import com.escuelagaing.edu.co.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -22,32 +22,32 @@ import java.util.Map;
 import java.util.Optional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+
 @Component
 public class BlackJackSocketIOConfig {
     private final SocketIOServer server;
     private final UserService userService;
     private final Map<String, Room> rooms = new HashMap<>(); 
+    private final RoomService roomService;
+    private final Map<String, String> socketToPlayerId = new HashMap<>();
+private final Map<String, String> socketToRoomId = new HashMap<>();
 
 
 
 
     @Autowired
-    public BlackJackSocketIOConfig(SocketIOServer server, UserService userService) {
+    public BlackJackSocketIOConfig(SocketIOServer server, UserService userService,RoomService roomService) {
         this.server = server;
         this.userService = userService;
+        this.roomService = roomService;
 
 
         server.addConnectListener(onConnected());
         server.addDisconnectListener(onDisconnected());
-
         server.addEventListener("joinRoom", String.class, joinRoomListener());
-   
         server.addEventListener("leaveRoom", String.class, leaveRoomListener());
-
         server.addEventListener("playerBet", BetPayload.class, playerBetListener());
-
         server.addEventListener("playerAction", PlayerActionPayload.class, playerActionListener());
-
         server.addEventListener("restartGame", RestartGamePayload.class, restartGameListener());
 
 
@@ -79,7 +79,7 @@ public class BlackJackSocketIOConfig {
     
             User user = userOptional.get();
             String playerNickName = user.getNickName();
-            Player player = new Player(user, playerNickName, roomId, 1000);
+            Player player = new Player(user, playerNickName, roomId, user.getAmount());
     
             System.out.println("Jugador creado: ID=" + playerId + ", Nombre=" + playerName + ", RoomId=" + roomId + ", Saldo=" + player.getAmount());
     
@@ -92,7 +92,6 @@ public class BlackJackSocketIOConfig {
             }
         };
     }
-    
     private DataListener<String> leaveRoomListener() {
         return (client, roomId, ackSender) -> {
             System.out.println("Client left Blackjack room: " + roomId);
@@ -129,6 +128,7 @@ public class BlackJackSocketIOConfig {
             Room room = rooms.get(roomId);
             if (room != null && room.getStatus() == RoomStatus.EN_APUESTAS) {
                 Player player = room.getPlayerById(playerId);
+                System.out.println("revisando player id " + player.getId());
                 if (player != null) {
                     if (player.placeBet(chipColors)) {
                         player.setHasCompletedBet(true);
@@ -154,28 +154,39 @@ public class BlackJackSocketIOConfig {
     }
 
 
-    
+
+
     private DataListener<RestartGamePayload> restartGameListener() {
         return (client, data, ackSender) -> {
             String roomId = data.getRoomId();
-            System.out.println("Evento restartGame recibido en la sala " + roomId);
-
             Room room = rooms.get(roomId);
             if (room != null) {
-                room.resetRoom(); // Reset the room state
-                room.setStatus(RoomStatus.EN_ESPERA); // Set to waiting status
-                sendRoomUpdate(roomId); // Notify clients about the reset
+                RoomStateDTO gameState = room.buildRoomState();
+                saveGameStateForPlayers(gameState, room.getPlayers());
+                room.resetRoom();
+                sendRoomUpdate(roomId); 
             } else {
-                System.err.println("No se encontró la sala con ID: " + roomId);
                 client.sendEvent("restartError", "Sala no encontrada o inválida.");
             }
         };
     }
+
+  
+
+    private void saveGameStateForPlayers(RoomStateDTO gameState, List<Player> players) {
+        if (gameState != null) {
+            for (Player player : players) {
+                String userId = player.getUser().getEmail();
+                userService.saveGameToUserHistory(userId, gameState);
+                userService.updateUser(userId, player.getUser());
+            }
+        }
+    }
+    
     public void sendRoomUpdate(String roomId) {
         Room room = rooms.get(roomId);
         if (room != null) {
             RoomStateDTO roomState = room.buildRoomState(); 
-            
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
                 String jsonString = objectMapper.writeValueAsString(roomState);
@@ -183,8 +194,6 @@ public class BlackJackSocketIOConfig {
             } catch (Exception e) {
                 System.err.println("Error al convertir RoomStateDTO a JSON: " + e.getMessage());
             }
-    
-            
             server.getRoomOperations(roomId).sendEvent("roomUpdate", roomState);
         }
     }
@@ -205,7 +214,7 @@ private DataListener<PlayerActionPayload> playerActionListener() {
                 System.out.println("sigue en turno");
                 Game game = room.getGame();
                 game.startPlayerTurn(player, actionType);
-                sendRoomUpdate(roomId); // Actualiza el estado de la sala para los clientes
+                sendRoomUpdate(roomId); 
             } else {
                 client.sendEvent("actionError", "No es el turno del jugador o el jugador no existe en la sala.");
             }
@@ -214,17 +223,61 @@ private DataListener<PlayerActionPayload> playerActionListener() {
         }
     };
 }
+private ConnectListener onConnected() {
+    return client -> {
+        String playerId = client.getHandshakeData().getSingleUrlParam("id");
+        String roomId = client.getHandshakeData().getSingleUrlParam("roomId");
 
-    private ConnectListener onConnected() {
-        return client -> System.out.println("New connection!");
-    }
+        System.out.println("New connection! Player ID: " + playerId + ", Room ID: " + roomId);
 
-    private DisconnectListener onDisconnected() {
-        return client -> {
-            System.out.println("Disconnected!");
+        socketToPlayerId.put(client.getSessionId().toString(), playerId);
+        socketToRoomId.put(client.getSessionId().toString(), roomId);
+    };
+}
 
-        };
-    }
+private DisconnectListener onDisconnected() {
+    return client -> {
+        String sessionId = client.getSessionId().toString();
+        String playerId = socketToPlayerId.get(sessionId);
+        String roomId = socketToRoomId.get(sessionId);
+
+        if (playerId == null || roomId == null) {
+            System.out.println("[ERROR] No se encontró información para el session ID: " + sessionId);
+            return;
+        }
+
+        System.out.println("Player disconnected. Player ID: " + playerId + ", Room ID: " + roomId);
+
+        Room room = rooms.get(roomId);
+        if (room != null) {
+            Player player = room.getPlayerById(playerId);
+           
+            if (player != null) {
+                player.setDisconnected(true);
+                System.out.println("Player " + player.getId()+ " marked as disconnected.");
+
+                if (room.getStatus() == RoomStatus.EN_JUEGO && player.getInTurn()) {
+                    System.out.println("Player was in turn. Passing to next player.");
+                    player.setInTurn(false);
+                    room.getGame().nextPlayer(); // Llama al método ajustado
+                }
+
+                sendRoomUpdate(roomId);
+            } else {
+                System.err.println("[ERROR] Jugador no encontrado en la sala. Player ID: " + playerId);
+            }
+        } else {
+            System.err.println("[ERROR] Sala no encontrada para Room ID: " + roomId);
+        }
+
+        // Limpia los mapeos
+        socketToPlayerId.remove(sessionId);
+        socketToRoomId.remove(sessionId);
+    };
+}
+
+
+
 
     public void start() {
         server.start();

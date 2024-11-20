@@ -17,6 +17,28 @@ public class Player {
     private String NickName;
     private boolean hasBet = false;
     private boolean isTurn;
+    private boolean disconnected = false;
+
+    public Player() {
+        this.hand = new ArrayList<>();
+        this.availableChips = new ArrayList<>();
+    } 
+
+    public void setHand(List<Card> hand) {
+        this.hand = hand;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+    public boolean isDisconnected() {
+        return disconnected;
+    }
+
+    public void setDisconnected(boolean disconnected) {
+        this.disconnected = disconnected;
+    }
+
 
 
     public Player(User user, String name, String roomId, double amount) {
@@ -28,7 +50,7 @@ public class Player {
         this.hand = new ArrayList<>();
         this.finishTurn = false;
         this.estado = null;  
-        this.availableChips = new ArrayList<>(); // Inicia como una lista vacía
+        this.availableChips = new ArrayList<>(); 
         this.NickName = null;
         this.isTurn = false;
 
@@ -120,15 +142,15 @@ public class Player {
     }
 
     public double getAmount() {
-        return amount;
+        return user.getAmount(); 
     }
 
     public void decreaseBalance(double amount) {
-        this.amount -= amount;
+        user.decreaseAmount(amount); // Actualiza el saldo del usuario
     }
 
     public void increaseBalance(double amount) {
-        this.amount += amount;
+        user.increaseAmount(amount); // Actualiza el saldo del usuario
     }
 
     public double getBet() {
@@ -150,32 +172,31 @@ public class Player {
 
 
     public boolean placeBet(double bet) {
-        if (bet <= this.amount) {  
-            this.amount -= bet; // Descontar la apuesta del saldo
-            setBet(bet);
+        if (bet <= user.getAmount()) {  
+            user.decreaseAmount(bet);
+            this.bet = bet; 
             return true; 
         }
         return false;
     }
+
     
     public void revenue(boolean isWinner) {
         if (isWinner) {
-            this.amount += bet * 2; // Recupera la apuesta y gana el equivalente
+            increaseBalance(bet * 2); 
         }
-        this.bet = 0; // Reinicia la apuesta
+        this.bet = 0; 
     }
     public int calculateScore() {
         int score = 0;
-        int aceCount = 0; // Contar los Ases
+        int aceCount = 0; 
     
         for (Card card : hand) {
             score += card.getValue();
-            if (card.getValue() == 11) { // Si es un As
+            if (card.getValue() == 11) { 
                 aceCount++;
             }
         }
-    
-        // Ajustar los Ases para no pasarse de 21
         while (score > 21 && aceCount > 0) {
             score -= 10; // Cambia un As de 11 a 1
             aceCount--;
@@ -192,8 +213,7 @@ public class Player {
 
     public boolean placeBet(List<String> chipColors) {
         List<Chip> chips = new ArrayList<>();
-
-        // Convertir cada color en la lista de strings a un objeto Chip
+    
         for (String color : chipColors) {
             try {
                 chips.add(Chip.fromColor(color));
@@ -202,20 +222,20 @@ public class Player {
                 return false;
             }
         }
-
+    
         double totalBetValue = chips.stream().mapToDouble(Chip::getValue).sum();
-
-        if (totalBetValue > amount) {
+    
+        if (totalBetValue > user.getAmount()) { 
             System.out.println("Saldo insuficiente para realizar esta apuesta.");
             return false;
         }
-
-        this.amount -= totalBetValue;
+    
+        user.decreaseAmount(totalBetValue); 
         this.bet += totalBetValue;
         this.availableChips.clear();
         this.availableChips.addAll(chips);
         this.hasBet = true;
-        System.out.println("Apuesta realizada: " + totalBetValue + ". Saldo restante: " + this.amount);
+        System.out.println("Apuesta realizada: " + totalBetValue + ". Saldo restante: " + user.getAmount());
         return true;
     }
 

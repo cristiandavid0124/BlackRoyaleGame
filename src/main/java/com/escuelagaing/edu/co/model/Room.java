@@ -2,9 +2,10 @@ package com.escuelagaing.edu.co.model;
 
 import com.escuelagaing.edu.co.dto.RoomStateDTO;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-
+import org.springframework.data.annotation.Transient;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -17,16 +18,27 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Room {
     @Id
     private String id;
+       
+    @Transient
     private List<Player> players;
+       
+    @Transient
     private Game game;
+       
+    @Transient
     private RoomStatus status;  
-    private final int maxPlayers = 5;
-    private final int minPlayers = 2;
-    private final int MAX_BET_TIME = 60; 
+       
+    @Transient
+    private int maxPlayers = 5;
+       
+    @Transient
+    private int minPlayers = 2;
+    
    
     // Constructor
     public Room() {
-        this.players = new ArrayList<>();
+        this.players = Collections.synchronizedList(new ArrayList<>());
+
         this.status = RoomStatus.EN_ESPERA;  // Estado inicial con enum
     }
      // Método para obtener un jugador por ID
@@ -56,8 +68,8 @@ public class Room {
         this.id = id; 
     }
 
-    public List<Player> getPlayers() {
-        return players;
+    public synchronized List<Player> getPlayers() {
+        return new ArrayList<>(players); 
     }
 
     public void setPlayers(List<Player> players) {
@@ -80,27 +92,16 @@ public class Room {
         this.status = status;
     }
 
-  
-    public  boolean addPlayer(Player player) {
+    public synchronized boolean addPlayer(Player player) {
         if (players.size() < maxPlayers) {
             players.add(player);
-    
             if (players.size() == minPlayers) {
-                System.out.println("Iniciando proceso de apuestas. Hay suficientes jugadores en la sala.");
                 status = RoomStatus.EN_APUESTAS;
                 startBetting();
             }
-    
-            if (players.size() == maxPlayers) {
-                System.out.println("La sala está llena.");
-                status = RoomStatus.EN_ESPERA;
-            }
-    
             return true;
-        } else {
-            System.out.println("La sala ya está llena.");
-            return false;
         }
+        return false;
     }
 
 
@@ -110,22 +111,19 @@ public class Room {
                 return player;
             }
         }
-        return null; // Retorna null si no se encuentra el jugador con el ID dado
+        return null; 
     }
 
     // Método para eliminar un jugador de la sala
-    public boolean removePlayer(Player player) {
+    public synchronized boolean removePlayer(Player player) {
         if (players.contains(player)) {
             players.remove(player);
-            
             if (players.size() < minPlayers && status == RoomStatus.EN_JUEGO) {
                 endGame();
             }
             return true;
-        } else {
-            System.out.println("El jugador no está en la sala.");
-            return false;
         }
+        return false;
     }
 
     public void startGame() {

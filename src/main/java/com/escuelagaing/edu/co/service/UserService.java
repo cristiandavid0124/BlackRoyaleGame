@@ -4,8 +4,11 @@ package com.escuelagaing.edu.co.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.escuelagaing.edu.co.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.escuelagaing.edu.co.dto.RoomStateDTO;
 import com.escuelagaing.edu.co.model.User;
 
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -27,28 +30,41 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    // Obtener un usuario por ID
     public Optional<User> getUserById(String id) {
         return userRepository.findById(id);
     }
 
-    // Actualizar un usuario
+    public void saveGameToUserHistory(String userId, RoomStateDTO gameState) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.addGameToHistory(gameState); 
+            userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("Usuario no encontrado con ID: " + userId);
+        }
+    }
+    
+
     public User updateUser(String id, User userDetails) {
-        // Verificar si el usuario existe
         return userRepository.findById(id)
                 .map(user -> {
                     user.setNickName(userDetails.getNickName());
-                    // Actualizar otros campos según sea necesario
-                    return userRepository.save(user); // Guardar los cambios en la base de datos
+                    user.setAmount(userDetails.getAmount());
+                    return userRepository.save(user);
                 })
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con id: " + id));
     }
 
-    // Eliminar un usuario
+
     public void deleteUser(String id) {
         if (!userRepository.existsById(id)) {
             throw new RuntimeException("Usuario no encontrado con id: " + id);
         }
         userRepository.deleteById(id);
     }
+
+
+
+    
 }

@@ -6,7 +6,7 @@ import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.bson.types.ObjectId;
+
 import org.springframework.data.annotation.Transient;
 
 public class Game {
@@ -18,7 +18,7 @@ public class Game {
     private boolean isActive;
     private List<Player> winners;
     private int currentPlayerIndex;
-    private static final String SCORE_TEXT = " - Puntuación: ";  // Constant for repeated string literal
+    private static final String SCORE_TEXT = " - Puntuación: ";  
    
     @Transient
     private Deck deck;
@@ -69,16 +69,33 @@ public class Game {
     }
 
  
-public void startPhaseTurns() {
-    if (!players.isEmpty()) {
-        Player firstPlayer = players.get(0);
-        firstPlayer.setInTurn(true);
-        
-        logger.info("Iniciando turno de " + firstPlayer.getNickName());
+    public void startPhaseTurns() {
+        if (!players.isEmpty()) {
+            Player firstPlayer = players.get(0);
+            int attempts = players.size();
+    
+            while (firstPlayer.isDisconnected() && attempts > 0) {
+                nextPlayer();
+                firstPlayer = players.get(currentPlayerIndex);
+                attempts--;
+            }
+    
+            if (!firstPlayer.isDisconnected()) {
+                firstPlayer.setInTurn(true);
+                logger.info("Iniciando turno de " + firstPlayer.getNickName());
+            } else {
+                logger.info("Todos los jugadores están desconectados. Finalizando el juego.");
+                dealerTurn();
+            }
+        }
     }
-}
+    
 
 public void startPlayerTurn(Player player, String actionString) {
+    if (player.isDisconnected()) {
+        nextPlayer();
+        return;
+    }
     PlayerAction action;
     try {
         action = PlayerAction.valueOf(actionString.toUpperCase()); 
@@ -93,7 +110,8 @@ public void startPlayerTurn(Player player, String actionString) {
     } catch (Exception e) {
         logger.error("Error en el turno del jugador: " + player.getName(), e);
     } finally {
-        player.setfinishTurn(true);
+
+        if (player.isFinishTurn()) {
         player.setInTurn(false);
         
         // Cambia al siguiente jugador en turno, si existe
@@ -104,6 +122,8 @@ public void startPlayerTurn(Player player, String actionString) {
         } else {
             dealerTurn();
         }
+
+    }
     }
 }
 
@@ -111,8 +131,15 @@ public void startPlayerTurn(Player player, String actionString) {
 public void decideAction(Player player, PlayerAction action) {
     switch (action) {
         case HIT:
-            player.addCard(deck.drawCard());
-            break;
+        player.addCard(deck.drawCard());
+        int currentScore = player.calculateScore();
+        logger.info("Jugador " + player.getName() + " realizó HIT - Puntuación actual: " + currentScore);
+        if (currentScore > 21) {
+            logger.info("Jugador " + player.getName() + " se pasó de 21. Fin de turno.");
+            player.setfinishTurn(true);
+            player.setInTurn(false);
+        }
+        break;
         case STAND:
             player.setfinishTurn(true);
             player.setInTurn(false);
@@ -171,12 +198,13 @@ public void decideAction(Player player, PlayerAction action) {
         List<Player> winners = calculateWinners();
         for (Player player : players) {
             if (winners.contains(player)) {
-                player.revenue(true); // Si el jugador es ganador, aplica revenue(true)
+                player.revenue(true); 
             } else {
-                player.revenue(false); // Si no es ganador, aplica revenue(false)
+                player.revenue(false); 
             }
         }
     }
+    
     public List<Player> calculateWinners() {
         int dealerScore = dealer.calculateScore();
         int highestScore = 0;
@@ -226,8 +254,27 @@ public void decideAction(Player player, PlayerAction action) {
     }
 
     public void nextPlayer() {
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+        if (players.isEmpty()) {
+            logger.info("No hay jugadores en la sala.");
+            return;
+        }
+    
+        int attempts = players.size(); // Limita las iteraciones al número de jugadores
+        do {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+            attempts--;
+        } while (players.get(currentPlayerIndex).isDisconnected() && attempts > 0);
+    
+        if (attempts > 0) { // Quedan jugadores activos
+            Player nextPlayer = players.get(currentPlayerIndex);
+            nextPlayer.setInTurn(true);
+            logger.info("Turno pasado a: " + nextPlayer.getNickName());
+        } else { // Todos los jugadores están desconectados
+            logger.info("Todos los jugadores están desconectados. Finalizando el juego.");
+            dealerTurn();
+        }
     }
+    
 
     public void resetPlayerTurns() {
         for (Player player : players) {
