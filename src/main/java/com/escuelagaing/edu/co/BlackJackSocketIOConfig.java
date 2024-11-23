@@ -28,7 +28,7 @@ public class BlackJackSocketIOConfig {
     private final SocketIOServer server;
     private final UserService userService;
     private final Map<String, Room> rooms = new HashMap<>(); 
-    private final RoomService roomService;
+
     private final Map<String, String> socketToPlayerId = new HashMap<>();
 private final Map<String, String> socketToRoomId = new HashMap<>();
 
@@ -36,10 +36,10 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
 
 
     @Autowired
-    public BlackJackSocketIOConfig(SocketIOServer server, UserService userService,RoomService roomService) {
+    public BlackJackSocketIOConfig(SocketIOServer server, UserService userService) {
         this.server = server;
         this.userService = userService;
-        this.roomService = roomService;
+       
 
 
         server.addConnectListener(onConnected());
@@ -161,8 +161,6 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
             String roomId = data.getRoomId();
             Room room = rooms.get(roomId);
             if (room != null) {
-                RoomStateDTO gameState = room.buildRoomState();
-                saveGameStateForPlayers(gameState, room.getPlayers());
                 room.resetRoom();
                 sendRoomUpdate(roomId); 
             } else {
@@ -170,6 +168,9 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
             }
         };
     }
+
+
+    
 
   
 
@@ -214,6 +215,10 @@ private DataListener<PlayerActionPayload> playerActionListener() {
                 System.out.println("sigue en turno");
                 Game game = room.getGame();
                 game.startPlayerTurn(player, actionType);
+                if (!room.getGame().isActive()) {
+                    RoomStateDTO gameState = room.buildRoomState();
+                    saveGameStateForPlayers(gameState, room.getPlayers());
+                }
                 sendRoomUpdate(roomId); 
             } else {
                 client.sendEvent("actionError", "No es el turno del jugador o el jugador no existe en la sala.");
@@ -252,7 +257,7 @@ private DisconnectListener onDisconnected() {
         if (room != null) {
             Player player = room.getPlayerById(playerId);
            
-            if (player != null) {
+            if (player != null && room.getGame() != null) {
                 player.setDisconnected(true);
                 System.out.println("Player " + player.getId()+ " marked as disconnected.");
                 if (room.getStatus() == RoomStatus.EN_APUESTAS) {

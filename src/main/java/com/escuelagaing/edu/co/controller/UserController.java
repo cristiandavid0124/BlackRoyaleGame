@@ -8,6 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -41,6 +44,15 @@ public class UserController {
             return ResponseEntity.ok(createdUser);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
+    public ResponseEntity<List<Map<String, Object>>> getUserGameHistory(@PathVariable String id) {
+        try {
+            List<Map<String, Object>> gameHistory = userService.getUserGameHistory(id);
+            return ResponseEntity.ok(gameHistory);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
         }
     }
 

@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.escuelagaing.edu.co.dto.RoomStateDTO;
 import com.escuelagaing.edu.co.model.User;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -40,6 +41,15 @@ public class UserService {
             User user = userOptional.get();
             user.addGameToHistory(gameState); 
             userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("Usuario no encontrado con ID: " + userId);
+        }
+    }
+
+      public List<Map<String, Object>> getUserGameHistory(String userId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isPresent()) {
+            return userOptional.get().getGameHistory();
         } else {
             throw new IllegalArgumentException("Usuario no encontrado con ID: " + userId);
         }

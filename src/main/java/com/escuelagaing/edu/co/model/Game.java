@@ -19,6 +19,7 @@ public class Game {
     private List<Player> winners;
     private int currentPlayerIndex;
     private static final String SCORE_TEXT = " - Puntuación: ";  
+
    
     @Transient
     private Deck deck;
@@ -33,6 +34,7 @@ public class Game {
         this.isActive = true;
         this.currentPlayerIndex = 0;
         this.barrier = new CyclicBarrier(players.size() + 1); 
+  
     }
 
 
@@ -113,14 +115,14 @@ public void startPlayerTurn(Player player, String actionString) {
 
         if (player.isFinishTurn()) {
         player.setInTurn(false);
-        
-        // Cambia al siguiente jugador en turno, si existe
+    
         int nextPlayerIndex = players.indexOf(player) + 1;
         if (nextPlayerIndex < players.size()) {
             Player nextPlayer = players.get(nextPlayerIndex);
             nextPlayer.setInTurn(true);
         } else {
             dealerTurn();
+
         }
 
     }
@@ -231,7 +233,7 @@ public void decideAction(Player player, PlayerAction action) {
     
             if (playerScore > 21) {
                 logger.info("Jugador " + player.getName() + " se pasó de 21.");
-                continue; // Si el jugador se pasó de 21, no puede ganar
+                continue; 
             }
     
             if (playerScore > dealerScore || dealerScore > 21) {
@@ -269,19 +271,20 @@ public void decideAction(Player player, PlayerAction action) {
             return;
         }
     
-        int attempts = players.size(); // Limita las iteraciones al número de jugadores
+        int attempts = players.size(); 
         do {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
             attempts--;
         } while (players.get(currentPlayerIndex).isDisconnected() && attempts > 0);
     
-        if (attempts > 0) { // Quedan jugadores activos
+        if (attempts > 0) { 
             Player nextPlayer = players.get(currentPlayerIndex);
             nextPlayer.setInTurn(true);
             logger.info("Turno pasado a: " + nextPlayer.getNickName());
-        } else { // Todos los jugadores están desconectados
+        } else { 
             logger.info("Todos los jugadores están desconectados. Finalizando el juego.");
             dealerTurn();
+           
         }
     }
     
