@@ -1,134 +1,265 @@
+// BlackJackSocketIOConfig.java
 package com.escuelagaing.edu.co;
+
+import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
-import com.escuelagaing.edu.co.dto.BetPayload;
-import com.escuelagaing.edu.co.dto.PlayerActionPayload;
-import com.escuelagaing.edu.co.dto.RestartGamePayload;
-import com.escuelagaing.edu.co.dto.RoomStateDTO;
-import com.escuelagaing.edu.co.model.Game;
-import com.escuelagaing.edu.co.model.Player;
-import com.escuelagaing.edu.co.model.Room;
-import com.escuelagaing.edu.co.model.RoomStatus;
-import com.escuelagaing.edu.co.model.User;
+import com.escuelagaing.edu.co.dto.*;
+import com.escuelagaing.edu.co.model.*;
 import com.escuelagaing.edu.co.service.RoomService;
 import com.escuelagaing.edu.co.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class BlackJackSocketIOConfig {
     private final SocketIOServer server;
     private final UserService userService;
-    private final Map<String, Room> rooms = new HashMap<>(); 
-
+    private final RoomService roomService;
+    private final Map<String, Room> rooms = new HashMap<>();
     private final Map<String, String> socketToPlayerId = new HashMap<>();
-private final Map<String, String> socketToRoomId = new HashMap<>();
-
-
-
+    private final Map<String, String> socketToRoomId = new HashMap<>();
 
     @Autowired
-    public BlackJackSocketIOConfig(SocketIOServer server, UserService userService) {
+    public BlackJackSocketIOConfig(SocketIOServer server, UserService userService, RoomService roomService) {
         this.server = server;
         this.userService = userService;
-       
-
+        this.roomService = roomService;
 
         server.addConnectListener(onConnected());
         server.addDisconnectListener(onDisconnected());
-        server.addEventListener("joinRoom", String.class, joinRoomListener());
+        server.addEventListener("joinRoom", JoinRoomPayload.class, joinRoomListener());
         server.addEventListener("leaveRoom", String.class, leaveRoomListener());
         server.addEventListener("playerBet", BetPayload.class, playerBetListener());
         server.addEventListener("playerAction", PlayerActionPayload.class, playerActionListener());
         server.addEventListener("restartGame", RestartGamePayload.class, restartGameListener());
-
-
     }
 
-    private DataListener<String> joinRoomListener() {
-        return (client, roomId, ackSender) -> {
-            String playerName = client.getHandshakeData().getSingleUrlParam("name");
+    private ConnectListener onConnected() {
+        return client -> {
             String playerId = client.getHandshakeData().getSingleUrlParam("id");
     
-            System.out.println("Player: " + playerName + " con ID: " + playerId + " se unió a la sala " + roomId);
-            client.joinRoom(roomId);
-    
-            Room room = rooms.computeIfAbsent(roomId, k -> new Room());
-    
-            if (room.getStatus() == RoomStatus.EN_JUEGO) {
-                client.sendEvent("error", "No puedes unirte. El juego ya ha comenzado.");
-                return;
-            } else if (room.getStatus() == RoomStatus.FINALIZADO) {
-                client.sendEvent("error", "El juego ha finalizado.");
+            if (playerId == null || playerId.isEmpty()) {
+                System.out.println("[ERROR] Conexión rechazada: Player ID no proporcionado.");
+                client.disconnect();
                 return;
             }
     
-            Optional<User> userOptional = userService.getUserById(playerId);
-            if (!userOptional.isPresent()) {
-                client.sendEvent("error", "Usuario no encontrado con ID: " + playerId);
-                return;
+            // Si ya existe una conexión para este jugador, desconectar la anterior
+            socketToPlayerId.values().removeIf(existingPlayerId -> existingPlayerId.equals(playerId));
+    
+            System.out.println("Player connected! Player ID: " + playerId);
+            socketToPlayerId.put(client.getSessionId().toString(), playerId);
+    
+            // Inicializar salas si no están cargadas
+            if (rooms.isEmpty()) {
+                System.out.println("[INFO] Inicializando salas desde RoomService en la conexión.");
+                initializeRooms();
             }
     
-            User user = userOptional.get();
-            String playerNickName = user.getNickName();
-            Player player = new Player(user, playerNickName, roomId, user.getAmount());
-    
-            System.out.println("Jugador creado: ID=" + playerId + ", Nombre=" + playerName + ", RoomId=" + roomId + ", Saldo=" + player.getAmount());
-    
-            if (room.addPlayer(player)) {
-                rooms.put(roomId, room);
-                sendRoomUpdate(roomId); 
-                System.out.println("Enviando actualización de la sala después de que el jugador se una");
-            } else {
-                client.sendEvent("error", "La sala ya está llena o no se puede unir.");
-            }
+            // Enviar las salas disponibles al cliente que se conecta
+            sendRoomsUpdateToClient(client);
         };
     }
-    private DataListener<String> leaveRoomListener() {
-        return (client, roomId, ackSender) -> {
-            System.out.println("Client left Blackjack room: " + roomId);
-            client.leaveRoom(roomId); 
+    
 
-            Room room = rooms.get(roomId);
-            if (room != null) {
-                Player player = room.getPlayerByName(client.getHandshakeData().getSingleUrlParam("name"));
-                if (player != null) {
-                    room.removePlayer(player); 
+private void initializeRooms() {
+    List<Room> initialRooms = roomService.getAllRooms(); // Llamar al servicio para obtener las salas
+    if (initialRooms != null && !initialRooms.isEmpty()) {
+        for (Room room : initialRooms) {
+            rooms.put(room.getRoomId(), room);
+        }
+        System.out.println("[INFO] Salas inicializadas desde RoomService: " + rooms.keySet());
+    } else {
+        System.out.println("[INFO] No hay salas disponibles para inicializar.");
+    }
+}
+
+private void sendRoomsUpdateToClient(SocketIOClient client) {
+    List<RoomStateDTO> allRoomsState = rooms.values().stream()
+            .map(Room::buildRoomState)
+            .collect(Collectors.toList());
+
+    client.sendEvent("roomsUpdate", allRoomsState);
+    System.out.println("Salas enviadas al cliente: " + allRoomsState);
+}
+
+    
+
+private DisconnectListener onDisconnected() {
+    return client -> {
+        String sessionId = client.getSessionId().toString();
+        String playerId = socketToPlayerId.remove(sessionId); // Remover el mapeo del jugador.
+        String roomId = socketToRoomId.remove(sessionId); // Remover el mapeo de la sala.
+
+        if (playerId == null || roomId == null) {
+            System.out.println("[ERROR] No se encontró información para el session ID: " + sessionId);
+            return;
+        }
+
+        System.out.println("Player disconnected. Player ID: " + playerId + ", Room ID: " + roomId);
+
+        Room room = rooms.get(roomId); // Obtener la sala por su ID.
+        if (room != null) {
+            Player player = room.getPlayerById(playerId); // Buscar al jugador en la sala.
+
+            if (player != null) {
+                // Marcar al jugador como desconectado.
+                player.setDisconnected(true);
+                System.out.println("Player " + player.getId() + " marked as disconnected.");
+
+                // Manejo específico según el estado de la sala.
+                if (room.getStatus() == RoomStatus.EN_APUESTAS) {
+                    System.out.println("Eliminando jugador desconectado durante la fase de apuestas: " + playerId);
+                    room.removePlayer(player); // Remover jugador si está en apuestas.
+
+                    // Si el número de jugadores restantes es menor al mínimo permitido, reiniciar la sala.
+                    if (room.getPlayers().size() < room.getMinPlayers()) {
+                        System.out.println("Sala " + roomId + " tiene menos jugadores del mínimo permitido. Reiniciando sala.");
+                        room.removePlayer(player);
+                        sendRoomUpdate(roomId);
+                        return; 
+                    }
+                } else if (room.getStatus() == RoomStatus.EN_JUEGO && player.getInTurn()) {
+                    System.out.println("Player was in turn. Passing to next player.");
+                    player.setInTurn(false); // Quitar el turno al jugador.
+                    room.getGame().nextPlayer(); // Pasar el turno al siguiente jugador.
+                }else{
+                    room.removePlayer(player);
                 }
 
-                
+                // Si la sala queda vacía, reiniciarla.
                 if (room.getPlayers().isEmpty()) {
-                    rooms.remove(roomId);
-                    System.out.println("Eliminando la sala " + roomId + " ya que no hay jugadores conectados.");
-                } else if (room.getPlayers().size() < room.getMinPlayers() && room.getStatus() == RoomStatus.EN_JUEGO) {
-                    room.setStatus(RoomStatus.FINALIZADO);
+                    room.resetRoom();
+                    System.out.println("Sala " + roomId + " reiniciada y puesta en estado EN_ESPERA.");
                 }
-                sendRoomUpdate(roomId); 
+
+                // Enviar actualización de la sala.
+                sendRoomUpdate(roomId);
+            } else {
+                System.err.println("[ERROR] Jugador no encontrado en la sala. Player ID: " + playerId);
             }
-        };
-    }
+        } else {
+            System.err.println("[ERROR] Sala no encontrada para Room ID: " + roomId);
+        }
+    };
+}
+
+
+    
+
+private DataListener<JoinRoomPayload> joinRoomListener() {
+    return (client, data, ackSender) -> {
+        String playerId = data.getUserId();
+        String roomId = data.getRoomId();
+
+        if (playerId == null || roomId == null) {
+            client.sendEvent("error", "Datos insuficientes para unirse a la sala.");
+            return;
+        }
+
+        // Verificar si el jugador ya está en la sala
+        Room room = rooms.get(roomId);
+        if (room != null && room.getPlayerById(playerId) != null) {
+            System.out.println("El jugador ya está en la sala, no se puede unir de nuevo.");
+            return;
+        }
+
+        // Obtener el jugador desde el servicio de usuarios
+        Optional<User> userOptional = userService.getUserById(playerId);
+        if (!userOptional.isPresent()) {
+            client.sendEvent("error", "Usuario no encontrado con ID: " + playerId);
+            return;
+        }
+
+        User user = userOptional.get();
+        String playerName = user.getNickName();
+
+        System.out.println("Player: " + playerName + " con ID: " + playerId + " se unió a la sala " + roomId);
+        client.joinRoom(roomId);
+
+        // Actualizar el mapeo socketToRoomId
+        socketToRoomId.put(client.getSessionId().toString(), roomId);
+
+        if (room == null) {
+            room = new Room();
+            room.setId(roomId);
+            rooms.put(roomId, room);
+        }
+
+        if (room.getStatus() == RoomStatus.EN_JUEGO) {
+            client.sendEvent("error", "No puedes unirte. El juego ya ha comenzado.");
+            return;
+        } else if (room.getStatus() == RoomStatus.FINALIZADO) {
+            client.sendEvent("error", "El juego ha finalizado.");
+            return;
+        }
+
+        Player player = new Player(user, playerName, roomId, user.getAmount());
+
+        System.out.println("Jugador creado: ID=" + playerId + ", Nombre=" + playerName + ", RoomId=" + roomId + ", Saldo=" + player.getAmount());
+
+        if (room.addPlayer(player)) {
+            sendRoomUpdate(roomId);
+            System.out.println("Enviando actualización de la sala después de que el jugador se una");
+        } else {
+            client.sendEvent("error", "La sala ya está llena o no se puede unir.");
+        }
+    };
+}
+
+
+private DataListener<String> leaveRoomListener() {
+    return (client, roomId, ackSender) -> {
+        System.out.println("Client left Blackjack room: " + roomId);
+        client.leaveRoom(roomId); // El cliente abandona la sala.
+
+        Room room = rooms.get(roomId); // Obtén la sala del mapa.
+        if (room != null) {
+            // Identifica al jugador basado en el mapeo o parámetros del socket.
+            String playerName = client.getHandshakeData().getSingleUrlParam("name");
+            Player player = room.getPlayerByName(playerName);
+
+            if (player != null) {
+                room.removePlayer(player); // Remueve al jugador de la sala.
+                System.out.println("Jugador " + playerName + " eliminado de la sala " + roomId);
+            }
+
+            // Si la sala queda vacía, reiníciala para que esté disponible nuevamente.
+            if (room.getPlayers().isEmpty()) {
+                room.resetRoom();
+                System.out.println("Sala " + roomId + " reiniciada y puesta en estado EN_ESPERA.");
+            } else if (room.getPlayers().size() < room.getMinPlayers() && room.getStatus() == RoomStatus.EN_JUEGO) {
+                room.setStatus(RoomStatus.FINALIZADO); // Cambiar estado si no hay jugadores suficientes.
+                System.out.println("Sala " + roomId + " marcada como FINALIZADA.");
+            }
+
+            sendRoomUpdate(roomId); // Notifica a los clientes sobre el cambio en la sala.
+        }
+    };
+}
+
+
     private DataListener<BetPayload> playerBetListener() {
         return (client, data, ackSender) -> {
             String roomId = data.getRoomId();
             List<String> chipColors = data.getFichas();
-        
+
             System.out.println("Evento playerBet recibido con las fichas: " + chipColors);
             System.out.println("roomId recibido: " + roomId);
-        
-            String playerId = client.getHandshakeData().getSingleUrlParam("id");
-        
+
+            String playerId = socketToPlayerId.get(client.getSessionId().toString());
+
             Room room = rooms.get(roomId);
             if (room != null && room.getStatus() == RoomStatus.EN_APUESTAS) {
                 Player player = room.getPlayerById(playerId);
-                System.out.println("revisando player id " + player.getId());
                 if (player != null) {
                     if (player.placeBet(chipColors)) {
                         player.setHasCompletedBet(true);
@@ -138,9 +269,9 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
                         boolean allPlayersCompletedBet = room.getPlayers().stream().allMatch(Player::hasCompletedBet);
                         if (allPlayersCompletedBet) {
                             room.endBetting();
-                            sendRoomUpdate(roomId); 
+                            sendRoomUpdate(roomId);
                         }
-                        
+
                     } else {
                         client.sendEvent("betError", "Saldo insuficiente o color de ficha no válido para esta apuesta.");
                     }
@@ -153,8 +284,33 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
         };
     }
 
+    private DataListener<PlayerActionPayload> playerActionListener() {
+        return (client, data, ackSender) -> {
+            String roomId = data.getRoomId();
+            String actionType = data.getType();
+            String playerId = socketToPlayerId.get(client.getSessionId().toString());
 
+            System.out.println("Acción del jugador recibida: " + actionType + " en la sala " + roomId);
 
+            Room room = rooms.get(roomId);
+            if (room != null && room.getStatus() == RoomStatus.EN_JUEGO) {
+                Player player = room.getPlayerById(playerId);
+                if (player != null && player.getInTurn()) {
+                    Game game = room.getGame();
+                    game.startPlayerTurn(player, actionType);
+                    if (!room.getGame().isActive()) {
+                        RoomStateDTO gameState = room.buildRoomState();
+                        saveGameStateForPlayers(gameState, room.getPlayers());
+                    }
+                    sendRoomUpdate(roomId);
+                } else {
+                    client.sendEvent("actionError", "No es el turno del jugador o el jugador no existe en la sala.");
+                }
+            } else {
+                client.sendEvent("actionError", "La sala no está en el estado de juego.");
+            }
+        };
+    }
 
     private DataListener<RestartGamePayload> restartGameListener() {
         return (client, data, ackSender) -> {
@@ -162,17 +318,12 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
             Room room = rooms.get(roomId);
             if (room != null) {
                 room.resetRoom();
-                sendRoomUpdate(roomId); 
+                sendRoomUpdate(roomId);
             } else {
                 client.sendEvent("restartError", "Sala no encontrada o inválida.");
             }
         };
     }
-
-
-    
-
-  
 
     private void saveGameStateForPlayers(RoomStateDTO gameState, List<Player> players) {
         if (gameState != null) {
@@ -183,11 +334,11 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
             }
         }
     }
-    
+
     public void sendRoomUpdate(String roomId) {
         Room room = rooms.get(roomId);
         if (room != null) {
-            RoomStateDTO roomState = room.buildRoomState(); 
+            RoomStateDTO roomState = room.buildRoomState();
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
                 String jsonString = objectMapper.writeValueAsString(roomState);
@@ -197,97 +348,18 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
             }
             server.getRoomOperations(roomId).sendEvent("roomUpdate", roomState);
         }
+        sendRoomsUpdate();
     }
-private DataListener<PlayerActionPayload> playerActionListener() {
-    return (client, data, ackSender) -> {
-        String roomId = data.getRoomId();
-        String actionType = data.getType();
-        String playerId = client.getHandshakeData().getSingleUrlParam("id");
 
-        System.out.println("Acción del jugador recibida: " + actionType + " en la sala " + roomId);
-
-        Room room = rooms.get(roomId);
-        if (room != null && room.getStatus() == RoomStatus.EN_JUEGO) {
-            System.out.println("esta en juego y encontro la sala");
-            Player player = room.getPlayerById(playerId);  
-            System.out.println("encontro el jugador");
-            if (player != null && player.getInTurn()) {
-                System.out.println("sigue en turno");
-                Game game = room.getGame();
-                game.startPlayerTurn(player, actionType);
-                if (!room.getGame().isActive()) {
-                    RoomStateDTO gameState = room.buildRoomState();
-                    saveGameStateForPlayers(gameState, room.getPlayers());
-                }
-                sendRoomUpdate(roomId); 
-            } else {
-                client.sendEvent("actionError", "No es el turno del jugador o el jugador no existe en la sala.");
-            }
-        } else {
-            client.sendEvent("actionError", "La sala no está en el estado de juego.");
-        }
-    };
-}
-private ConnectListener onConnected() {
-    return client -> {
-        String playerId = client.getHandshakeData().getSingleUrlParam("id");
-        String roomId = client.getHandshakeData().getSingleUrlParam("roomId");
-
-        System.out.println("New connection! Player ID: " + playerId + ", Room ID: " + roomId);
-
-        socketToPlayerId.put(client.getSessionId().toString(), playerId);
-        socketToRoomId.put(client.getSessionId().toString(), roomId);
-    };
-}
-
-private DisconnectListener onDisconnected() {
-    return client -> {
-        String sessionId = client.getSessionId().toString();
-        String playerId = socketToPlayerId.get(sessionId);
-        String roomId = socketToRoomId.get(sessionId);
-
-        if (playerId == null || roomId == null) {
-            System.out.println("[ERROR] No se encontró información para el session ID: " + sessionId);
-            return;
-        }
-
-        System.out.println("Player disconnected. Player ID: " + playerId + ", Room ID: " + roomId);
-
-        Room room = rooms.get(roomId);
-        if (room != null) {
-            Player player = room.getPlayerById(playerId);
-           
-            if (player != null && room.getGame() != null) {
-                player.setDisconnected(true);
-                System.out.println("Player " + player.getId()+ " marked as disconnected.");
-                if (room.getStatus() == RoomStatus.EN_APUESTAS) {
-                    System.out.println("Eliminando jugador desconectado durante la fase de apuestas: " + playerId);
-                    room.removePlayer(player);
-                }
-
-                if (room.getStatus() == RoomStatus.EN_JUEGO && player.getInTurn()) {
-                    System.out.println("Player was in turn. Passing to next player.");
-                    player.setInTurn(false);
-                    room.getGame().nextPlayer(); // Llama al método ajustado
-                }
-
-                sendRoomUpdate(roomId);
-            } else {
-                System.err.println("[ERROR] Jugador no encontrado en la sala. Player ID: " + playerId);
-            }
-        } else {
-            System.err.println("[ERROR] Sala no encontrada para Room ID: " + roomId);
-        }
-
-        // Limpia los mapeos
-        socketToPlayerId.remove(sessionId);
-        socketToRoomId.remove(sessionId);
-    };
-}
-
-
-
-
+    public void sendRoomsUpdate() {
+        List<RoomStateDTO> allRoomsState = rooms.values().stream()
+                .map(Room::buildRoomState)
+                .collect(Collectors.toList());
+    
+        server.getBroadcastOperations().sendEvent("roomsUpdate", allRoomsState);
+        System.out.println("Broadcast de salas actualizado: " + allRoomsState);
+    }
+    
     public void start() {
         server.start();
     }

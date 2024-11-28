@@ -50,6 +50,9 @@ public class Room {
         }
         return null; 
     }
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
 
 
 
@@ -57,7 +60,7 @@ public class Room {
     public RoomStateDTO buildRoomState() {
         List<Player> winners = (game != null && !game.isActive()) ? game.calculateWinners() : List.of();
         List<Card> dealerHand = (game != null) ? game.getDealer().getHand() : List.of();
-        return new RoomStateDTO(players, winners, dealerHand);
+        return new RoomStateDTO(id, status, maxPlayers, players, winners, dealerHand);
     }
 
     public String getRoomId() {  
@@ -115,6 +118,7 @@ public class Room {
     }
 
     public synchronized boolean removePlayer(Player player) {
+
         if (players.contains(player)) {
             players.remove(player);
             game.deletePlayer(player.getId());

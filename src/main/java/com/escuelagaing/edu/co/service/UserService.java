@@ -24,7 +24,6 @@ public class UserService {
 
     // Crear un nuevo usuario
     public User createUser(User user) {
-        // Verificar si el usuario ya existe
         if (userRepository.existsById(user.getEmail())) {
             throw new RuntimeException("El usuario con email " + user.getEmail() + " ya existe.");
         }

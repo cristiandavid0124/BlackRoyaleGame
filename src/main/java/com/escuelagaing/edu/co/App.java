@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import com.corundumstudio.socketio.SocketIOServer;
+import com.corundumstudio.socketio.Transport;
 import com.corundumstudio.socketio.Configuration;
 @SpringBootApplication
 @EnableMongoRepositories(basePackages = "com.escuelagaing.edu.co.repository")
@@ -17,6 +18,8 @@ public class App {
         Configuration config = new Configuration();
         config.setHostname("localhost");
         config.setPort(9092);  
+        config.setTransports(Transport.WEBSOCKET); // Forzar WebSocket
+
         return new SocketIOServer(config);
     }
     @Bean
