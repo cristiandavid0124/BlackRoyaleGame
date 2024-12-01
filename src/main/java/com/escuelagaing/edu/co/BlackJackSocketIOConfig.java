@@ -7,6 +7,7 @@ import com.escuelagaing.edu.co.dto.BetPayload;
 import com.escuelagaing.edu.co.dto.PlayerActionPayload;
 import com.escuelagaing.edu.co.dto.RestartGamePayload;
 import com.escuelagaing.edu.co.dto.RoomStateDTO;
+import com.escuelagaing.edu.co.model.ChatMessage;
 import com.escuelagaing.edu.co.model.Game;
 import com.escuelagaing.edu.co.model.Player;
 import com.escuelagaing.edu.co.model.Room;
@@ -49,6 +50,7 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
         server.addEventListener("playerBet", BetPayload.class, playerBetListener());
         server.addEventListener("playerAction", PlayerActionPayload.class, playerActionListener());
         server.addEventListener("restartGame", RestartGamePayload.class, restartGameListener());
+        server.addEventListener("sendMessage", ChatMessage.class, chatMessageListener());
 
 
     }
@@ -198,96 +200,115 @@ private final Map<String, String> socketToRoomId = new HashMap<>();
             server.getRoomOperations(roomId).sendEvent("roomUpdate", roomState);
         }
     }
-private DataListener<PlayerActionPayload> playerActionListener() {
-    return (client, data, ackSender) -> {
-        String roomId = data.getRoomId();
-        String actionType = data.getType();
-        String playerId = client.getHandshakeData().getSingleUrlParam("id");
 
-        System.out.println("Acción del jugador recibida: " + actionType + " en la sala " + roomId);
+    private DataListener<PlayerActionPayload> playerActionListener() {
+        return (client, data, ackSender) -> {
+            String roomId = data.getRoomId();
+            String actionType = data.getType();
+            String playerId = client.getHandshakeData().getSingleUrlParam("id");
 
-        Room room = rooms.get(roomId);
-        if (room != null && room.getStatus() == RoomStatus.EN_JUEGO) {
-            System.out.println("esta en juego y encontro la sala");
-            Player player = room.getPlayerById(playerId);  
-            System.out.println("encontro el jugador");
-            if (player != null && player.getInTurn()) {
-                System.out.println("sigue en turno");
-                Game game = room.getGame();
-                game.startPlayerTurn(player, actionType);
-                if (!room.getGame().isActive()) {
-                    RoomStateDTO gameState = room.buildRoomState();
-                    saveGameStateForPlayers(gameState, room.getPlayers());
+            System.out.println("Acción del jugador recibida: " + actionType + " en la sala " + roomId);
+
+            Room room = rooms.get(roomId);
+            if (room != null && room.getStatus() == RoomStatus.EN_JUEGO) {
+                System.out.println("esta en juego y encontro la sala");
+                Player player = room.getPlayerById(playerId);  
+                System.out.println("encontro el jugador");
+                if (player != null && player.getInTurn()) {
+                    System.out.println("sigue en turno");
+                    Game game = room.getGame();
+                    game.startPlayerTurn(player, actionType);
+                    if (!room.getGame().isActive()) {
+                        RoomStateDTO gameState = room.buildRoomState();
+                        saveGameStateForPlayers(gameState, room.getPlayers());
+                    }
+                    sendRoomUpdate(roomId); 
+                } else {
+                    client.sendEvent("actionError", "No es el turno del jugador o el jugador no existe en la sala.");
                 }
-                sendRoomUpdate(roomId); 
             } else {
-                client.sendEvent("actionError", "No es el turno del jugador o el jugador no existe en la sala.");
+                client.sendEvent("actionError", "La sala no está en el estado de juego.");
             }
-        } else {
-            client.sendEvent("actionError", "La sala no está en el estado de juego.");
-        }
-    };
-}
-private ConnectListener onConnected() {
-    return client -> {
-        String playerId = client.getHandshakeData().getSingleUrlParam("id");
-        String roomId = client.getHandshakeData().getSingleUrlParam("roomId");
+        };
+    }
 
-        System.out.println("New connection! Player ID: " + playerId + ", Room ID: " + roomId);
+    private ConnectListener onConnected() {
+        return client -> {
+            String playerId = client.getHandshakeData().getSingleUrlParam("id");
+            String roomId = client.getHandshakeData().getSingleUrlParam("roomId");
 
-        socketToPlayerId.put(client.getSessionId().toString(), playerId);
-        socketToRoomId.put(client.getSessionId().toString(), roomId);
-    };
-}
+            System.out.println("New connection! Player ID: " + playerId + ", Room ID: " + roomId);
 
-private DisconnectListener onDisconnected() {
-    return client -> {
-        String sessionId = client.getSessionId().toString();
-        String playerId = socketToPlayerId.get(sessionId);
-        String roomId = socketToRoomId.get(sessionId);
+            socketToPlayerId.put(client.getSessionId().toString(), playerId);
+            socketToRoomId.put(client.getSessionId().toString(), roomId);
+        };
+    }
 
-        if (playerId == null || roomId == null) {
-            System.out.println("[ERROR] No se encontró información para el session ID: " + sessionId);
-            return;
-        }
+    private DisconnectListener onDisconnected() {
+        return client -> {
+            String sessionId = client.getSessionId().toString();
+            String playerId = socketToPlayerId.get(sessionId);
+            String roomId = socketToRoomId.get(sessionId);
 
-        System.out.println("Player disconnected. Player ID: " + playerId + ", Room ID: " + roomId);
+            if (playerId == null || roomId == null) {
+                System.out.println("[ERROR] No se encontró información para el session ID: " + sessionId);
+                return;
+            }
 
-        Room room = rooms.get(roomId);
-        if (room != null) {
-            Player player = room.getPlayerById(playerId);
-           
-            if (player != null && room.getGame() != null) {
-                player.setDisconnected(true);
-                System.out.println("Player " + player.getId()+ " marked as disconnected.");
-                if (room.getStatus() == RoomStatus.EN_APUESTAS) {
-                    System.out.println("Eliminando jugador desconectado durante la fase de apuestas: " + playerId);
-                    room.removePlayer(player);
+            System.out.println("Player disconnected. Player ID: " + playerId + ", Room ID: " + roomId);
+
+            Room room = rooms.get(roomId);
+            if (room != null) {
+                Player player = room.getPlayerById(playerId);
+            
+                if (player != null && room.getGame() != null) {
+                    player.setDisconnected(true);
+                    System.out.println("Player " + player.getId()+ " marked as disconnected.");
+                    if (room.getStatus() == RoomStatus.EN_APUESTAS) {
+                        System.out.println("Eliminando jugador desconectado durante la fase de apuestas: " + playerId);
+                        room.removePlayer(player);
+                    }
+
+                    if (room.getStatus() == RoomStatus.EN_JUEGO && player.getInTurn()) {
+                        System.out.println("Player was in turn. Passing to next player.");
+                        player.setInTurn(false);
+                        room.getGame().nextPlayer(); // Llama al método ajustado
+                    }
+
+                    sendRoomUpdate(roomId);
+                } else {
+                    System.err.println("[ERROR] Jugador no encontrado en la sala. Player ID: " + playerId);
                 }
-
-                if (room.getStatus() == RoomStatus.EN_JUEGO && player.getInTurn()) {
-                    System.out.println("Player was in turn. Passing to next player.");
-                    player.setInTurn(false);
-                    room.getGame().nextPlayer(); // Llama al método ajustado
-                }
-
-                sendRoomUpdate(roomId);
             } else {
-                System.err.println("[ERROR] Jugador no encontrado en la sala. Player ID: " + playerId);
+                System.err.println("[ERROR] Sala no encontrada para Room ID: " + roomId);
             }
-        } else {
-            System.err.println("[ERROR] Sala no encontrada para Room ID: " + roomId);
-        }
 
-        // Limpia los mapeos
-        socketToPlayerId.remove(sessionId);
-        socketToRoomId.remove(sessionId);
-    };
-}
+            // Limpia los mapeos
+            socketToPlayerId.remove(sessionId);
+            socketToRoomId.remove(sessionId);
+        };
+    }
 
-
-
-
+    private DataListener<ChatMessage> chatMessageListener() {
+        return (client, message, ackSender) -> {
+            String roomId = message.getRoomId(); // ID de la sala del mensaje
+            String sender = message.getSender(); // Nombre del remitente
+    
+            // Verificar que la sala existe
+            Room room = rooms.get(roomId);
+            if (room == null) {
+                client.sendEvent("error", "La sala no existe.");
+                return;
+            }
+    
+            // Construir el mensaje de chat y retransmitirlo a todos en la sala
+            ChatMessage chatMessage = new ChatMessage(sender, message.getMessage(), roomId);
+            server.getRoomOperations(roomId).sendEvent("receiveMessage", chatMessage);
+    
+            System.out.println("Mensaje retransmitido en sala " + roomId + " por " + sender + ": " + message.getMessage());
+        };
+    }
+    
     public void start() {
         server.start();
     }
