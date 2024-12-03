@@ -40,6 +40,8 @@ public class BlackJackSocketIOConfig {
         server.addEventListener("playerBet", BetPayload.class, playerBetListener());
         server.addEventListener("playerAction", PlayerActionPayload.class, playerActionListener());
         server.addEventListener("restartGame", RestartGamePayload.class, restartGameListener());
+        server.addEventListener("sendMessage", ChatMessage.class, chatMessageListener());
+
     }
 
     private ConnectListener onConnected() {
@@ -212,6 +214,28 @@ private DataListener<JoinRoomPayload> joinRoomListener() {
         } else {
             client.sendEvent("error", "La sala ya está llena o no se puede unir.");
         }
+    };
+}
+
+
+
+private DataListener<ChatMessage> chatMessageListener() {
+    return (client, message, ackSender) -> {
+        String roomId = message.getRoomId(); // ID de la sala del mensaje
+        String sender = message.getSender(); // Nombre del remitente
+
+        // Verificar que la sala existe
+        Room room = rooms.get(roomId);
+        if (room == null) {
+            client.sendEvent("error", "La sala no existe.");
+            return;
+        }
+
+        // Construir el mensaje de chat y retransmitirlo a todos en la sala
+        ChatMessage chatMessage = new ChatMessage(sender, message.getMessage(), roomId);
+        server.getRoomOperations(roomId).sendEvent("receiveMessage", chatMessage);
+
+        System.out.println("Mensaje retransmitido en sala " + roomId + " por " + sender + ": " + message.getMessage());
     };
 }
 
