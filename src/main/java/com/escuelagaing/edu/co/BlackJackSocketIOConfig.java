@@ -95,55 +95,45 @@ private void sendRoomsUpdateToClient(SocketIOClient client) {
 
     
 
+
 private DisconnectListener onDisconnected() {
     return client -> {
         String sessionId = client.getSessionId().toString();
-        String playerId = socketToPlayerId.remove(sessionId); // Remover el mapeo del jugador.
-        String roomId = socketToRoomId.remove(sessionId); // Remover el mapeo de la sala.
+        String playerId = socketToPlayerId.remove(sessionId);
+        String roomId = socketToRoomId.remove(sessionId);
 
         if (playerId == null || roomId == null) {
             System.out.println("[ERROR] No se encontró información para el session ID: " + sessionId);
             return;
         }
 
-        System.out.println("Player disconnected. Player ID: " + playerId + ", Room ID: " + roomId);
-
-        Room room = rooms.get(roomId); // Obtener la sala por su ID.
+        Room room = rooms.get(roomId);
         if (room != null) {
-            Player player = room.getPlayerById(playerId); // Buscar al jugador en la sala.
+            Player player = room.getPlayerById(playerId);
 
             if (player != null) {
-                // Marcar al jugador como desconectado.
                 player.setDisconnected(true);
                 System.out.println("Player " + player.getId() + " marked as disconnected.");
 
-                // Manejo específico según el estado de la sala.
-                if (room.getStatus() == RoomStatus.EN_APUESTAS) {
-                    System.out.println("Eliminando jugador desconectado durante la fase de apuestas: " + playerId);
-                    room.removePlayer(player); // Remover jugador si está en apuestas.
-
-                    // Si el número de jugadores restantes es menor al mínimo permitido, reiniciar la sala.
-                    if (room.getPlayers().size() < room.getMinPlayers()) {
-                        System.out.println("Sala " + roomId + " tiene menos jugadores del mínimo permitido. Reiniciando sala.");
-                        room.removePlayer(player);
-                        sendRoomUpdate(roomId);
-                        return; 
-                    }
-                } else if (room.getStatus() == RoomStatus.EN_JUEGO && player.getInTurn()) {
-                    System.out.println("Player was in turn. Passing to next player.");
-                    player.setInTurn(false); // Quitar el turno al jugador.
-                    room.getGame().nextPlayer(); // Pasar el turno al siguiente jugador.
-                }else{
+                if (room.getStatus() != RoomStatus.EN_JUEGO) {
+                    System.out.println("Eliminando jugador desconectado durante la fase " + room.getStatus() + ": " + playerId);
                     room.removePlayer(player);
+
+                } else {
+                    // Si está en juego
+                    if (player.getInTurn()) {
+                        System.out.println("Player was in turn. Passing to next player.");
+                        player.setInTurn(false);
+                        room.getGame().nextPlayer();
+                    } 
                 }
 
-                // Si la sala queda vacía, reiniciarla.
+                // Si después de eliminar, la sala queda vacía
                 if (room.getPlayers().isEmpty()) {
                     room.resetRoom();
                     System.out.println("Sala " + roomId + " reiniciada y puesta en estado EN_ESPERA.");
                 }
 
-                // Enviar actualización de la sala.
                 sendRoomUpdate(roomId);
             } else {
                 System.err.println("[ERROR] Jugador no encontrado en la sala. Player ID: " + playerId);
@@ -313,7 +303,7 @@ private DataListener<String> leaveRoomListener() {
             String roomId = data.getRoomId();
             String actionType = data.getType();
             String playerId = socketToPlayerId.get(client.getSessionId().toString());
-
+            
             System.out.println("Acción del jugador recibida: " + actionType + " en la sala " + roomId);
 
             Room room = rooms.get(roomId);

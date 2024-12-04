@@ -93,41 +93,32 @@ public class Game {
     }
     
 
-public void startPlayerTurn(Player player, String actionString) {
-    if (player.isDisconnected()) {
-        nextPlayer();
-        return;
-    }
-    PlayerAction action;
-    try {
-        action = PlayerAction.valueOf(actionString.toUpperCase()); 
-    } catch (IllegalArgumentException e) {
-        logger.error("Acción no válida recibida: " + actionString, e);
-        return; 
-    }
-
-    logger.info("Turno de: " + player.getNickName() + " con acción: " + action);
-    try {
-        decideAction(player, action); 
-    } catch (Exception e) {
-        logger.error("Error en el turno del jugador: " + player.getName(), e);
-    } finally {
-
-        if (player.isFinishTurn()) {
-        player.setInTurn(false);
-    
-        int nextPlayerIndex = players.indexOf(player) + 1;
-        if (nextPlayerIndex < players.size()) {
-            Player nextPlayer = players.get(nextPlayerIndex);
-            nextPlayer.setInTurn(true);
-        } else {
-            dealerTurn();
-
+    public void startPlayerTurn(Player player, String actionString) {
+        if (player.isDisconnected()) {
+            nextPlayer();
+            return;
         }
-
+        PlayerAction action;
+        try {
+            action = PlayerAction.valueOf(actionString.toUpperCase()); 
+        } catch (IllegalArgumentException e) {
+            logger.error("Acción no válida recibida: " + actionString, e);
+            return; 
+        }
+    
+        logger.info("Turno de: " + player.getNickName() + " con acción: " + action);
+        try {
+            decideAction(player, action); 
+        } catch (Exception e) {
+            logger.error("Error en el turno del jugador: " + player.getName(), e);
+        } finally {
+            if (player.isFinishTurn()) {
+                player.setInTurn(false);
+                nextPlayer(); // Llama a nextPlayer() para manejar correctamente la transición
+            }
+        }
     }
-    }
-}
+    
 
 
 public void decideAction(Player player, PlayerAction action) {
@@ -275,18 +266,19 @@ public void decideAction(Player player, PlayerAction action) {
         do {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
             attempts--;
-        } while (players.get(currentPlayerIndex).isDisconnected() && attempts > 0);
+        } while ((players.get(currentPlayerIndex).isDisconnected() || players.get(currentPlayerIndex).isFinishTurn()) && attempts > 0);
     
         if (attempts > 0) { 
             Player nextPlayer = players.get(currentPlayerIndex);
             nextPlayer.setInTurn(true);
             logger.info("Turno pasado a: " + nextPlayer.getNickName());
         } else { 
-            logger.info("Todos los jugadores están desconectados. Finalizando el juego.");
+            logger.info("Todos los jugadores han terminado su turno o están desconectados. Finalizando el juego.");
             dealerTurn();
-           
         }
     }
+    
+    
     
 
     public void resetPlayerTurns() {

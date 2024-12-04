@@ -75,9 +75,10 @@ public class Room {
         return new ArrayList<>(players); 
     }
 
-    public void setPlayers(List<Player> players) {
+    public synchronized void setPlayers(List<Player> players) {
         this.players = players;
     }
+    
 
     public Game getGame() {
         return game;
