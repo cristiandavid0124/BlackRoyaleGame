@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +24,7 @@ public class BlackJackSocketIOConfig {
     private final SocketIOServer server;
     private final UserService userService;
     private final RoomService roomService;
-    private final Map<String, Room> rooms = new HashMap<>();
+    private final Map<String, Room> rooms = new ConcurrentHashMap<>();
     private final Map<String, String> socketToPlayerId = new HashMap<>();
     private final Map<String, String> socketToRoomId = new HashMap<>();
 
