@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RestController
-@CrossOrigin("*")
+@CrossOrigin(origins = "https://blackjackroyaleapp-f6hagcdvc5bbejb0.canadacentral-01.azurewebsites.net")
 @RequestMapping("/api/users")
 public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);

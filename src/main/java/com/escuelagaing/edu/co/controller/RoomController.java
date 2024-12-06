@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@CrossOrigin("*")
+@CrossOrigin(origins = "https://blackjackroyaleapp-f6hagcdvc5bbejb0.canadacentral-01.azurewebsites.net")
 @RequestMapping("/api/rooms")
 public class RoomController {
 
