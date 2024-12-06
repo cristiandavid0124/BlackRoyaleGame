@@ -12,11 +12,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @CrossOrigin("*")
 @RequestMapping("/api/users")
 public class UserController {
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     private final UserService userService;
 
@@ -25,27 +28,29 @@ public class UserController {
         this.userService = userService;
     }
 
-    // Crear un nuevo usuario
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody UserDTO userDto) {
         try {
-            System.out.println("Datos de recidor " +userDto.getEmail() +" "+ userDto.getName());
+            logger.info("Solicitud recibida para crear un nuevo usuario.");
 
             User user = new User();
             user.setName(userDto.getName());
             user.setEmail(userDto.getEmail());
             user.setNickName("NULL");
 
-            // Mapear otros campos según sea necesario
-
-            System.out.println("Datos de nuevo usuario " +userDto.getEmail() +" "+ userDto.getName());
+            logger.info("Creando usuario en el sistema.");
 
             User createdUser = userService.createUser(user);
+
+            logger.info("Usuario creado exitosamente.");
+
             return ResponseEntity.ok(createdUser);
         } catch (RuntimeException e) {
+            logger.error("Error al crear el usuario.", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
+
 
     public ResponseEntity<List<Map<String, Object>>> getUserGameHistory(@PathVariable String id) {
         try {
