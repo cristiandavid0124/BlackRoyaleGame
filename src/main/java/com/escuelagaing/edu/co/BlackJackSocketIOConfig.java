@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,7 +27,7 @@ public class BlackJackSocketIOConfig {
     private final SocketIOServer server;
     private final UserService userService;
     private final RoomService roomService;
-    private final Map<String, Room> rooms = new HashMap<>();
+    private final Map<String, Room> rooms = new ConcurrentHashMap<>();
     private final Map<String, String> socketToPlayerId = new HashMap<>();
     private final Map<String, String> socketToRoomId = new HashMap<>();
 

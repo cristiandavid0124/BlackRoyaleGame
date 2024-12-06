@@ -61,7 +61,7 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
+         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
@@ -94,6 +94,28 @@
 
     <build>
         <plugins>
+
+           <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version> <!-- Usa la última versión disponible -->
+                <executions>
+                    <!-- Generar reporte de cobertura después de ejecutar las pruebas -->
+                    <execution>
+                        <id>prepare-agent</id> <!-- Establecer un ID único -->
+                        <goals>
+                            <goal>prepare-agent</goal> <!-- Prepara el agente de JaCoCo -->
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>generate-report</id> <!-- Establecer un ID único -->
+                        <goals>
+                            <goal>report</goal> <!-- Genera el reporte de cobertura -->
+                        </goals>
+                        <phase>post-integration-test</phase> <!-- Después de las pruebas de integración -->
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Spring Boot Maven Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
