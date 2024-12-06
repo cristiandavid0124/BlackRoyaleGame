@@ -40,10 +40,8 @@ jobs:
     needs: build-and-push
 
     steps:
-    - name: Deploy to Azure App Service
+    - name: Log in to Azure CLI
       env:
-        AZURE_WEBAPP_NAME: "BlackJackRoyaleBackend"  # Nombre del App Service en Azure
-        AZURE_RESOURCE_GROUP: "BlackJackRoyaleApp_group"  # Nombre del grupo de recursos en Azure
         AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -52,8 +50,18 @@ jobs:
           --username $AZURE_CLIENT_ID \
           --password $AZURE_CLIENT_SECRET \
           --tenant $AZURE_TENANT_ID
+
+    - name: Set MongoDB URI in Azure App Service
+      run: |
+        az webapp config appsettings set \
+          --name BlackJackRoyaleBackend \
+          --resource-group BlackJackRoyaleApp_group \
+          --settings MONGO_URI="mongodb+srv://criss2001david:root@cluster0.4pnls.mongodb.net/blackjackroyale?retryWrites=true&w=majority&appName=Cluster0"
+
+    - name: Deploy to Azure App Service
+      run: |
         az webapp config container set \
-          --name $AZURE_WEBAPP_NAME \
-          --resource-group $AZURE_RESOURCE_GROUP \
+          --name BlackJackRoyaleBackend \
+          --resource-group BlackJackRoyaleApp_group \
           --docker-custom-image-name cristindavid0124/mi-backend:latest \
           --docker-registry-server-url https://index.docker.io/v1/
