@@ -46,7 +46,8 @@ jobs:
         AZURE_RESOURCE_GROUP: "BlackJackRoyaleApp_group"  # Nombre del grupo de recursos en Azure
         AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       run: |
-        az login --service-principal --username $AZURE_USERNAME --password $AZURE_PASSWORD --tenant $AZURE_TENANT_ID
+        echo "${{ secrets.AZURE_CREDENTIALS }}" > azure-credentials.json
+        az login --service-principal --sdk-auth --file azure-credentials.json
         az webapp config container set \
           --name BlackJackRoyaleBackend \
           --resource-group BlackJackRoyaleApp_group \
