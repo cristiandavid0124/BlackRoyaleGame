@@ -90,7 +90,7 @@ private void sendRoomsUpdateToClient(SocketIOClient client) {
             .collect(Collectors.toList());
 
     client.sendEvent("roomsUpdate", allRoomsState);
-    System.out.println("Salas enviadas al cliente: " + allRoomsState);
+    System.out.println("Salas enviadas al cliente Probandooooooo: " + allRoomsState);
 }
 
     
