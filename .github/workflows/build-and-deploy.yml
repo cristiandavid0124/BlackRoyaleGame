@@ -33,11 +33,30 @@ jobs:
       with:
         context: .
         push: true
-        tags: cristindavid0124/mi-backend:latest  # Usa tu imagen de Docker Hub
+        tags: cristindavid0124/mi-backend:latest
 
-  deploy:
+  test:
+    name: Run Tests
     runs-on: ubuntu-22.04
     needs: build-and-push
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Run tests with Maven
+      run: mvn test
+
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-22.04
+    needs: [build-and-push, test]
 
     steps:
     - name: Log in to Azure CLI
