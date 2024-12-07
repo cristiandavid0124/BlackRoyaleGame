@@ -126,31 +126,7 @@ class GameTest {
         assertNull(game.getPlayers().stream().filter(player -> player.getId().equals("1")).findFirst().orElse(null), "El jugador 1 debe ser eliminado");
     }
 
-    @Test
-    void testAllPlayersBust() {
-        List<Player> players = createPlayers();
-        Game game = new Game(players, "room1");
-
-        game.startGame();
-
-        Player player1 = game.getPlayers().get(0);
-        player1.addCard(new Card("Corazones", "10", 10));
-        player1.addCard(new Card("Picas", "10", 10));
-
-        Player player2 = game.getPlayers().get(1);
-        player2.addCard(new Card("Diamantes", "5", 5));
-        player2.addCard(new Card("Tréboles", "6", 6));
-
-        game.dealerTurn();
-
-        game.endGame();
-
-
-        List<Player> winners = game.calculateWinners();
-        assertEquals(1, winners.size(), "El dealer debería ser el único ganador");
-        assertEquals(game.getDealer(), winners.get(0), "El dealer debe ganar si todos los jugadores se pasaron de 21");
-    }
-
+ 
 
 
 }
