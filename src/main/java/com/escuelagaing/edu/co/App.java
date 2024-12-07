@@ -29,8 +29,6 @@ public class App {
     
     @Bean
     public CommandLineRunner commandLineRunner(SocketIOServer socketIOServer, BlackJackSocketIOConfig blackJackSocketIOConfig) {
-        return args -> {
-            blackJackSocketIOConfig.start();
-        };
+        return args -> blackJackSocketIOConfig.start();
     }
 }

@@ -1,5 +1,4 @@
 package com.escuelagaing.edu.co.controller;
-
 import com.escuelagaing.edu.co.dto.UserDTO;
 import com.escuelagaing.edu.co.model.User;
 import com.escuelagaing.edu.co.service.UserService;
@@ -7,19 +6,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 @RestController
 @CrossOrigin(origins = "https://blackjackroyaleapp-f6hagcdvc5bbejb0.canadacentral-01.azurewebsites.net")
 @RequestMapping("/api/users")
@@ -114,7 +110,7 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         try {
             userService.deleteUser(id);
-            return ResponseEntity.noContent().build(); // Retorna 204 No Content
+            return ResponseEntity.noContent().build(); 
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }

@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 public class Player {
     private static final Logger logger = LoggerFactory.getLogger(Player.class);
     private User user; 
-    private String name;
     private String roomId; // ID de la sala a la que pertenece el jugador
     private List<Card> hand;
     private double amount;
@@ -47,7 +46,6 @@ public class Player {
     public Player(User user, String name, String roomId, double amount) {
         
         this.user = user; 
-        this.name = name;
         this.roomId = roomId; 
         this.amount = amount;
         this.hand = new ArrayList<>();

@@ -24,7 +24,17 @@
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+
+        <!-- Configuración de SonarQube -->
+        <sonar.projectKey>cristiandavid0124_BlackRoyaleGame</sonar.projectKey>
+        <sonar.organization>cristiandavid0124</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.login>${env.SONAR_TOKEN}</sonar.login>
+        <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+
+        <sonar.jacoco.reportPaths>target/jacoco.exec</sonar.jacoco.reportPaths>
     </properties>
+
 
     <dependencies>
         <!-- Dependencia principal de Spring Boot -->
